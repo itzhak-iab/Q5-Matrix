@@ -38,7 +38,7 @@ jobs:
       - name: Run Matrix Backend
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python backend/matrix_backend.py
+        run: python backend/macro_agent.py
 
       # 5. Commit the updated JSON to the repo (so GitHub Pages serves fresh data)
       - name: Commit updated data
