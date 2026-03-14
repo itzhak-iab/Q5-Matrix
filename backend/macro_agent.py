@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Q5 Command Matrix — macro_agent.py (PRD v1.0)
-==============================================
+Q5 Command Matrix — macro_agent.py v2.0
+========================================
 מערכת מודיעין פיננסית קונטרריאנית.
 
 Pipeline:
-  Phase 1: RADAR — סריקה דינמית של 50+ מניות
-  Phase 2: AI TRIAGE — Gemini בוחר Top 3 לכל עמודה
-  Phase 3: DEEP FETCH — נתונים מעמיקים ל-12 מניות נבחרות
-  Phase 4: AI X-RAY — ניתוח 8 פרמטרים לכל מניה (בעברית)
-  Phase 5: VALIDATE & SAVE — master_data.json
+  Phase 1: RADAR — סריקה דינמית של 80+ מניות
+  Phase 2: AI TRIAGE — Gemini בוחר Top 3 לכל עמודה (קריאה 1)
+  Phase 3: DEEP FETCH — נתוני עומק ל-~12 מניות נבחרות
+  Phase 4: AI X-RAY — 4 קריאות נפרדות לג'מיני, כל אחת עם Pydantic Model ייחודי
+  Phase 5: VALIDATE & SAVE — master_data.json + history
 
 כל הפלט בעברית. מפתחות JSON באנגלית.
 """
@@ -23,6 +23,8 @@ import traceback
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional, Tuple, Dict, List
+
+from pydantic import BaseModel, Field, validator
 
 # Load .env for local runs; GitHub Actions injects secrets via environment
 try:
@@ -71,6 +73,81 @@ import yfinance as yf
 
 
 # ==============================================================
+# PYDANTIC MODELS — per-column X-Ray schemas
+# ==============================================================
+
+class XRayParam(BaseModel):
+    """Single X-Ray parameter: score + Hebrew analysis text."""
+    score: int = Field(ge=1, le=100, description="Contrarian opportunity score 1-100")
+    analysis: str = Field(min_length=10, description="Hebrew analysis text, 2-3 sentences")
+
+class AnalystRatings(BaseModel):
+    """Analyst consensus section."""
+    consensus: str = Field(description="קנייה/החזק/מכירה")
+    summary: str = Field(description="2-3 sentences in Hebrew")
+    bull_case: str = Field(description="One sentence bullish thesis in Hebrew")
+    bear_case: str = Field(description="One sentence bearish thesis in Hebrew")
+
+# ── Day Trading X-Ray ──
+class DayTradingXRay(BaseModel):
+    semantic_panic: XRayParam
+    short_trap: XRayParam
+    volume_abnormality: XRayParam
+    float_choke: XRayParam
+
+# ── Swing X-Ray ──
+class SwingXRay(BaseModel):
+    event_horizon: XRayParam
+    options_flow: XRayParam
+    insider_moves: XRayParam
+    narrative_shift: XRayParam
+
+# ── Position X-Ray ──
+class PositionXRay(BaseModel):
+    institutional_stealth: XRayParam
+    supply_bottleneck: XRayParam
+    analyst_exhaustion: XRayParam
+    macro_tailwind: XRayParam
+
+# ── Investment X-Ray ──
+class InvestmentXRay(BaseModel):
+    hostage_power: XRayParam
+    debt_asymmetry: XRayParam
+    esg_premium: XRayParam
+    capital_iq: XRayParam
+
+class CompositeScore(BaseModel):
+    total: int = Field(ge=0, le=100)
+
+class Price(BaseModel):
+    current: float
+
+class StockPick(BaseModel):
+    """A single stock pick with all analysis fields."""
+    ticker: str
+    company_name: str
+    sector: str
+    price: Price
+    composite_score: CompositeScore
+    thesis_summary: str
+    company_description: str = ""
+    analyst_ratings: Optional[AnalystRatings] = None
+    xray: Dict[str, XRayParam]  # dynamic keys per column
+
+class ColumnResult(BaseModel):
+    """Result for a single column — exactly 3 picks."""
+    top_picks: List[StockPick] = Field(min_length=1, max_length=3)
+
+# Map column key → Pydantic XRay model class
+XRAY_MODELS: Dict[str, type] = {
+    "day_trading": DayTradingXRay,
+    "swing": SwingXRay,
+    "position": PositionXRay,
+    "investment": InvestmentXRay,
+}
+
+
+# ==============================================================
 # CONFIG
 # ==============================================================
 class Config:
@@ -95,7 +172,7 @@ class Config:
 # PHASE 1: RADAR SCANNER
 # ==============================================================
 class RadarScanner:
-    """Dynamically discovers ~50 interesting stocks from contrarian sectors + screeners."""
+    """Dynamically discovers ~80 interesting stocks from contrarian sectors."""
 
     CONTRARIAN_UNIVERSE = {
         "shipping": ["STNG", "EGLE", "SBLK", "ZIM", "DAC", "GSL"],
@@ -115,44 +192,28 @@ class RadarScanner:
         "industrial_boring": ["CMI", "CAT", "DE", "PCAR"],
     }
 
-    # Additional trending tickers to add diversity beyond the static universe
     EXTRA_TICKERS = [
-        "INTC", "BA", "PYPL", "DIS", "NCLH", "CCL",  # beaten-down large caps
-        "CLF", "X", "AA", "FCX",                       # metals/materials
-        "OXY", "DVN", "HAL", "SLB",                    # energy services
-        "KMI", "WMB", "OKE",                            # midstream
+        "INTC", "BA", "PYPL", "DIS", "NCLH", "CCL",
+        "CLF", "X", "AA", "FCX",
+        "OXY", "DVN", "HAL", "SLB",
+        "KMI", "WMB", "OKE",
     ]
 
     def scan(self) -> List[str]:
-        """Returns a deduplicated list of tickers from universe + extras."""
         all_tickers = set()
-
-        # Static universe
         for sector, tickers in self.CONTRARIAN_UNIVERSE.items():
             for t in tickers:
                 all_tickers.add(t)
-
-        # Extra tickers for diversity
         for t in self.EXTRA_TICKERS:
             all_tickers.add(t)
-
         log.info(f"Total universe tickers: {len(all_tickers)}")
         return sorted(all_tickers)
 
     def fetch_light_data(self, tickers: List[str]) -> List[Dict]:
-        """Fetch lightweight data (price, volume, change) for triage."""
         log.info(f"Fetching light data for {len(tickers)} tickers...")
         results = []
-
-        # Batch download
         try:
-            data = yf.download(
-                tickers,
-                period="5d",
-                group_by="ticker",
-                threads=True,
-                progress=False,
-            )
+            data = yf.download(tickers, period="5d", group_by="ticker", threads=True, progress=False)
         except Exception as e:
             log.error(f"Batch download failed: {e}")
             return results
@@ -163,20 +224,16 @@ class RadarScanner:
                     df = data
                 else:
                     df = data[ticker] if ticker in data.columns.get_level_values(0) else None
-
                 if df is None or df.empty:
                     continue
-
                 df = df.dropna()
                 if len(df) < 2:
                     continue
-
                 last_close = float(df["Close"].iloc[-1])
                 prev_close = float(df["Close"].iloc[-2])
                 change_pct = ((last_close - prev_close) / prev_close) * 100
                 volume = int(df["Volume"].iloc[-1])
                 avg_volume = int(df["Volume"].mean())
-
                 results.append({
                     "ticker": ticker,
                     "price": round(last_close, 2),
@@ -187,7 +244,6 @@ class RadarScanner:
                 })
             except Exception:
                 continue
-
         log.info(f"Light data fetched for {len(results)} tickers")
         return results
 
@@ -196,14 +252,10 @@ class RadarScanner:
 # PHASE 3: DEEP DATA FETCHER
 # ==============================================================
 class DeepDataFetcher:
-    """Fetch in-depth data for selected ~12 stocks."""
-
     def fetch_deep(self, ticker: str) -> Dict:
-        """Full financial profile for a single stock."""
         try:
             stock = yf.Ticker(ticker)
             info = stock.info or {}
-
             result = {
                 "ticker": ticker,
                 "company_name": info.get("longName", info.get("shortName", ticker)),
@@ -237,16 +289,13 @@ class DeepDataFetcher:
                 "insiders": [],
             }
 
-            # Analyst recommendations
             try:
                 recs = stock.recommendations
                 if recs is not None and not recs.empty:
-                    latest = recs.tail(5).to_dict("records")
-                    result["analyst"]["recent_recs"] = latest
+                    result["analyst"]["recent_recs"] = recs.tail(5).to_dict("records")
             except Exception:
                 pass
 
-            # Analyst ratings summary
             try:
                 rec_summary = stock.recommendations_summary
                 if rec_summary is not None:
@@ -260,100 +309,90 @@ class DeepDataFetcher:
             except Exception:
                 pass
 
-            # Insider transactions
             try:
                 insiders = stock.insider_transactions
                 if insiders is not None and not insiders.empty:
-                    recent = insiders.head(10).to_dict("records")
-                    result["insiders"] = recent
+                    result["insiders"] = insiders.head(10).to_dict("records")
             except Exception:
                 pass
 
-            # Earnings dates
             try:
                 cal = stock.calendar
-                if cal is not None:
-                    if isinstance(cal, dict):
-                        result["earnings_date"] = str(cal.get("Earnings Date", ["Unknown"])[0]) if "Earnings Date" in cal else "Unknown"
-                    else:
-                        result["earnings_date"] = "Unknown"
+                if cal is not None and isinstance(cal, dict):
+                    result["earnings_date"] = str(cal.get("Earnings Date", ["Unknown"])[0]) if "Earnings Date" in cal else "Unknown"
+                else:
+                    result["earnings_date"] = "Unknown"
             except Exception:
                 result["earnings_date"] = "Unknown"
 
             return result
-
         except Exception as e:
             log.warning(f"Deep fetch failed for {ticker}: {e}")
             return {"ticker": ticker, "error": str(e)}
 
 
 # ==============================================================
-# CONTRARIAN AI ENGINE
+# CONTRARIAN AI ENGINE — 4 separate Gemini calls
 # ==============================================================
 class ContrarianAIEngine:
-    """Interfaces with Gemini for triage + full X-Ray analysis."""
+    """Interfaces with Gemini. Phase 2 = 1 triage call, Phase 4 = 4 separate X-Ray calls."""
 
-    # ───── STRATEGY DEFINITIONS (per PRD Section 3) ─────
     STRATEGY_DEFINITIONS = """
 ## 4 זירות הפעולה:
 
-### 1. day_trading — מסחר יומי: ארביטראז' סמנטי
-זיהוי חברה שחווה פער מחיר שלילי (Gap Down) כתוצאה מ"רעש" (למשל ציוץ או עדכון מדד) ולא מפגיעה פונדמנטלית בעסק. רווח מהיר מפאניקה.
+### 1. day_trading — יירוט טקטי: ארביטראז' סמנטי
+זיהוי חברה שחווה פער מחיר שלילי (Gap Down) כתוצאה מ"רעש" ולא מפגיעה פונדמנטלית. רווח מהיר מפאניקה.
 
-### 2. swing — סווינג: רכיבה על קטליזטור
-זיהוי חברה המתקרבת לאירוע מכונן (דו"ח כספי, החלטת ריבית, אישור רגולטורי) אשר השוק מתמחר אותו כרגע בחסר.
+### 2. swing — תקיפת קטליזטור: רכיבה על אירוע
+זיהוי חברה המתקרבת לאירוע מכונן שהשוק מתמחר בחסר.
 
-### 3. position — פוזיציה: שבירת מגמה בצווארי בקבוק
-זיהוי סקטור שבו מתחיל להיכנס "כסף חכם" (מחזורי מסחר חריגים) עקב חוסר מהותי ובלתי נראה בתשתית או חומר גלם.
+### 3. position — מארב אסטרטגי: צווארי בקבוק וכסף חכם
+זיהוי סקטור שבו מתחיל להיכנס "כסף חכם" עקב חוסר מהותי בתשתית או חומר גלם.
 
-### 4. investment — השקעה ארוכת טווח: מונופול וחפיר פיזי
-חברה בעלת חפיר כלכלי שלא ניתן לשכפול (זיכיונות, כורים), מאזן חסין אינפלציה, ויכולת ייצור תזרים מזומנים גם במיתון עולמי.
+### 4. investment — נכסי ברזל: מונופול וחפיר פיזי
+חברה בעלת חפיר כלכלי שלא ניתן לשכפול, מאזן חסין אינפלציה, ויכולת ייצור תזרים גם במיתון.
 """
 
-    # ───── X-RAY DEFINITIONS PER COLUMN ─────
+    # ── Per-column X-Ray definitions with detailed instructions ──
     XRAY_DEFINITIONS_PER_COLUMN = {
         "day_trading": """
-## 4 פרמטרי רנטגן — יירוט טקטי (day_trading):
+## 4 פרמטרי רנטגן — יירוט טקטי:
 
 1. **semantic_panic** (מדד הפאניקה הסמנטית): מדוד את הפער בין הסנטימנט השלילי ברשתות/כותרות לבין הנזק הפונדמנטלי בפועל. ציון גבוה = פאניקה רבה מתוך רעש בלבד, ללא פגיעה עסקית אמיתית.
-2. **short_trap** (מלכודת שורטיסטים): בדוק את יחס השורט (Short Interest), עלות ההשאלה, וימים לכיסוי. ציון גבוה = שורטיסטים חשופים לסקוויז קרוב.
-3. **volume_abnormality** (אנומליית מחזורים): השווה נפח מסחר נוכחי לממוצע 20 יום. ציון גבוה = נפח חריג שמצביע על פעילות לא-אורגנית (מכירת פאניקה או קנייה מוסדית).
-4. **float_choke** (חנק היצע צף): בדוק את ה-Float — כמות המניות הנסחרות בפועל מול ההחזקות המוסדיות. ציון גבוה = היצע צף נמוך שמגביר תנודתיות ומהירות התאוששות.
+2. **short_trap** (מלכודת שורטיסטים): בדוק את יחס השורט, עלות ההשאלה, וימים לכיסוי. ציון גבוה = שורטיסטים חשופים לסקוויז קרוב.
+3. **volume_abnormality** (אנומליית מחזורים): השווה נפח מסחר נוכחי לממוצע 20 יום. ציון גבוה = נפח חריג שמצביע על פעילות לא-אורגנית.
+4. **float_choke** (חנק היצע צף): בדוק את ה-Float מול ההחזקות המוסדיות. ציון גבוה = היצע צף נמוך שמגביר תנודתיות.
 """,
         "swing": """
-## 4 פרמטרי רנטגן — תקיפת קטליזטור (swing):
+## 4 פרמטרי רנטגן — תקיפת קטליזטור:
 
-1. **event_horizon** (אופק האירוע): זהה את הקטליזטור הקרוב — דו"ח רבעוני, אישור FDA, החלטת ריבית, פסיקת רגולציה. ציון גבוה = אירוע קרוב שהשוק מתמחר בחסר.
-2. **options_flow** (זרימת כסף חכם — אופציות): נתח זרימת אופציות חריגה (unusual options activity), יחס Put/Call, ונפח Open Interest. ציון גבוה = כסף חכם מהמר בגדול על כיוון מסוים.
-3. **insider_moves** (פעילות בעלי עניין): בדוק רכישות/מכירות של בכירים, Form 4, ושינויי החזקות דירקטורים. ציון גבוה = אינסיידרים קונים — אות חיובי חזק.
-4. **narrative_shift** (שינוי נרטיב סקטוריאלי): זהה האם הסיפור הציבורי סביב הסקטור/החברה עומד להשתנות. ציון גבוה = נרטיב שלילי שעומד להתהפך על סמך עובדות חדשות.
+1. **event_horizon** (אופק האירוע): זהה את הקטליזטור הקרוב — דו"ח, אישור FDA, החלטת ריבית. ציון גבוה = אירוע קרוב שהשוק מתמחר בחסר.
+2. **options_flow** (זרימת כסף חכם — אופציות): נתח זרימת אופציות חריגה, יחס Put/Call, ו-Open Interest. ציון גבוה = כסף חכם מהמר בגדול.
+3. **insider_moves** (פעילות בעלי עניין): בדוק רכישות/מכירות של בכירים, Form 4. ציון גבוה = אינסיידרים קונים.
+4. **narrative_shift** (שינוי נרטיב סקטוריאלי): זהה האם הסיפור הציבורי עומד להשתנות. ציון גבוה = נרטיב שלילי שעומד להתהפך.
 """,
         "position": """
-## 4 פרמטרי רנטגן — מארב אסטרטגי (position):
+## 4 פרמטרי רנטגן — מארב אסטרטגי:
 
-1. **institutional_stealth** (איסוף מוסדי שקט): עקוב אחרי שינויי 13F, דיווחי חובה, ורכישות מוסדיות בנפחים קטנים שמתחת לרדאר. ציון גבוה = מוסדיים צוברים בשקט מבלי להזיז את המחיר.
-2. **supply_bottleneck** (צווארי בקבוק באספקה): זהה חוסרים מבניים בשרשרת האספקה — חומרי גלם, תשתיות, כוח אדם. ציון גבוה = צוואר בקבוק שיגרום לעליית מחירים בסקטור.
-3. **analyst_exhaustion** (מיצוי אנליסטים והיפוך): בדוק האם קונצנזוס האנליסטים הגיע לקיצון. כולם ממליצים מכירה? זהו דווקא אות קנייה קונטרריאני. ציון גבוה = מיצוי שלילי = הזדמנות היפוך.
-4. **macro_tailwind** (רוח גבית מאקרו-כלכלית): נתח מגמות מאקרו — ריבית, אינפלציה, מדיניות ממשלתית — שמעניקות רוח גבית נסתרת לסקטור. ציון גבוה = רוח גבית חזקה שהשוק טרם תמחר.
+1. **institutional_stealth** (איסוף מוסדי שקט): עקוב אחרי שינויי 13F ורכישות מוסדיות שמתחת לרדאר. ציון גבוה = מוסדיים צוברים בשקט.
+2. **supply_bottleneck** (צווארי בקבוק באספקה): זהה חוסרים מבניים בשרשרת האספקה. ציון גבוה = צוואר בקבוק שיגרום לעליית מחירים.
+3. **analyst_exhaustion** (מיצוי אנליסטים והיפוך): בדוק האם קונצנזוס הגיע לקיצון. כולם ממליצים מכירה? אות קנייה קונטרריאני. ציון גבוה = הזדמנות היפוך.
+4. **macro_tailwind** (רוח גבית מאקרו): נתח מגמות ריבית, אינפלציה, מדיניות ממשלתית שמעניקות רוח גבית נסתרת. ציון גבוה = רוח גבית שהשוק טרם תמחר.
 """,
         "investment": """
-## 4 פרמטרי רנטגן — נכסי ברזל (investment):
+## 4 פרמטרי רנטגן — נכסי ברזל:
 
-1. **hostage_power** (תופס ערובה — כוח מיקוח): האם החברה חוליה קריטית בשרשרת האספקה? האם הלקוח יכול לעבור למתחרה? ציון גבוה = חפיר עמוק שנועל לקוחות.
-2. **debt_asymmetry** (אסימטריית חוב אינפלציונית): חברות עם חוב ארוך בריבית קבועה נמוכה שמרוויחות משחיקת ערך החוב באינפלציה. ציון גבוה = חוב שהופך מנטל לנכס.
-3. **esg_premium** (פרדוקס האתיקה — ESG): האם לחץ ESG וחרמות בעצם חוסם מתחרים חדשים ושומר על היצע נמוך? ציון גבוה = חפיר ESG הפוך שמגן על הרווחים.
-4. **capital_iq** (מנת משכל הקצאת הון): האם ההנהלה שמרנית שמכווצת מניות ומחלקת דיבידנדים, או בונה אימפריות מיותרות? ציון גבוה = הנהלה חכמה שמקצה הון ביעילות.
+1. **hostage_power** (תופס ערובה — כוח מיקוח): האם החברה חוליה קריטית בשרשרת האספקה? ציון גבוה = חפיר עמוק שנועל לקוחות.
+2. **debt_asymmetry** (אסימטריית חוב אינפלציונית): חוב ארוך בריבית קבועה נמוכה שנשחק באינפלציה. ציון גבוה = חוב שהופך מנטל לנכס.
+3. **esg_premium** (פרדוקס האתיקה — ESG): לחץ ESG שחוסם מתחרים ושומר על היצע נמוך. ציון גבוה = חפיר ESG הפוך.
+4. **capital_iq** (מנת משכל הקצאת הון): הנהלה שמכווצת מניות ומחלקת דיבידנדים. ציון גבוה = הנהלה חכמה.
 """,
     }
-
-    # ───── JSON SCHEMA (dynamic per column) ─────
-    # Schema is built dynamically in build_xray_prompt based on column keys
 
     def __init__(self):
         if not Config.GEMINI_API_KEY:
             log.critical("GEMINI_API_KEY not set!")
             sys.exit(1)
-
         if GENAI_NEW_SDK:
             self.client = genai_sdk.Client(api_key=Config.GEMINI_API_KEY)
         else:
@@ -361,7 +400,6 @@ class ContrarianAIEngine:
             self.client = None
 
     def call_gemini(self, prompt: str, temperature: float = 0.7) -> str:
-        """Call Gemini with retry logic."""
         for attempt in range(1, Config.MAX_RETRIES + 1):
             try:
                 if GENAI_NEW_SDK:
@@ -370,7 +408,7 @@ class ContrarianAIEngine:
                         contents=prompt,
                         config=genai_types.GenerateContentConfig(
                             temperature=temperature,
-                            max_output_tokens=16000,
+                            max_output_tokens=8000,
                         ),
                     )
                     return response.text or ""
@@ -378,7 +416,7 @@ class ContrarianAIEngine:
                     model = genai_sdk.GenerativeModel(Config.GEMINI_MODEL)
                     response = model.generate_content(
                         prompt,
-                        generation_config={"temperature": temperature, "max_output_tokens": 16000},
+                        generation_config={"temperature": temperature, "max_output_tokens": 8000},
                     )
                     return response.text or ""
             except Exception as e:
@@ -389,9 +427,7 @@ class ContrarianAIEngine:
                     raise
 
     def build_triage_prompt(self, radar_data: List[Dict]) -> str:
-        """Phase 2: Ask Gemini to pick Top 3 per column from radar hits."""
         compact = json.dumps(radar_data, ensure_ascii=False, indent=None)
-
         return f"""אתה אנליסט השקעות קונטרריאני (Contrarian).
 
 {self.STRATEGY_DEFINITIONS}
@@ -416,39 +452,37 @@ class ContrarianAIEngine:
 החזר JSON בלבד. ללא טקסט נוסף."""
 
     def build_xray_prompt(self, column_key: str, column_desc: str, deep_data: List[Dict]) -> str:
-        """Phase 4: Full X-Ray for 3 stocks in one column, with column-specific parameters."""
+        """Build a focused prompt for ONE column only (3 stocks, 4 xray params)."""
         data_str = json.dumps(deep_data, ensure_ascii=False, default=str)
-
-        # Get column-specific xray definitions and keys
         xray_defs = self.XRAY_DEFINITIONS_PER_COLUMN.get(column_key, "")
         xray_keys = Config.XRAY_KEYS.get(column_key, [])
 
-        # Build JSON schema snippet for this column's xray keys
+        # Build JSON schema snippet
         xray_schema_lines = []
         for k in xray_keys:
-            xray_schema_lines.append(f'        "{k}": {{ "score": 0, "analysis": "ניתוח בעברית 2-3 משפטים" }}')
+            xray_schema_lines.append(f'        "{k}": {{ "score": 75, "analysis": "ניתוח בעברית 2-3 משפטים" }}')
         xray_schema_str = ",\n".join(xray_schema_lines)
 
-        return f"""אתה אנליסט קונטרריאני. נתונים פיננסיים מפורטים של 3 מניות לזירת **{column_desc}**.
+        return f"""אתה אנליסט קונטרריאני מומחה. להלן נתונים מפורטים של 3 מניות לזירת **{column_desc}**.
 
 {xray_defs}
 
-## הנתונים:
+## הנתונים הפיננסיים:
 {data_str}
 
 ## המשימה:
 ייצר ניתוח X-Ray מלא עבור כל אחת מ-3 המניות.
 
 ### כללים קריטיים:
-1. **כל הטקסט בעברית בלבד** — תקציר, ניתוח, שמות סקטורים, תיאור החברה, דעת האנליסטים.
-2. **מפתחות JSON באנגלית בלבד** — בדיוק כפי שמופיע בסכמה.
-3. **ציון 1-100** לכל פרמטר — מבוסס על הפילוסופיה הקונטרריאנית (ציון גבוה = הזדמנות קונטרריאנית חזקה).
-4. **ניתוח 2-3 משפטים** לכל פרמטר — ספציפי, עם נתונים מהמידע שסופק.
+1. **כל הטקסט בעברית בלבד** — תקציר, ניתוח, שמות סקטורים, תיאור חברה, דעת אנליסטים.
+2. **מפתחות JSON באנגלית בלבד** — בדיוק כפי שמופיע בסכמה למטה.
+3. **ציון 1-100** לכל פרמטר — ציון גבוה = הזדמנות קונטרריאנית חזקה.
+4. **ניתוח 2-3 משפטים** לכל פרמטר — ספציפי, עם נתונים.
 5. **composite_score** — ממוצע משוקלל של 4 הפרמטרים.
-6. **company_description** — תיאור של 3-4 משפטים בעברית על מה החברה עושה.
-7. **analyst_ratings** — סיכום דעת האנליסטים בעברית: consensus (קנייה/החזק/מכירה), summary (2-3 משפטים), bull_case (משפט אחד), bear_case (משפט אחד).
+6. **company_description** — תיאור 3-4 משפטים בעברית.
+7. **analyst_ratings** — consensus, summary, bull_case, bear_case — הכל בעברית.
 
-## פורמט פלט — JSON בלבד (4 פרמטרי xray ייחודיים לזירה זו):
+## פורמט פלט — JSON בלבד:
 ```json
 {{
   "top_picks": [
@@ -457,12 +491,12 @@ class ContrarianAIEngine:
       "company_name": "שם בעברית",
       "sector": "סקטור בעברית",
       "price": {{ "current": 0.0 }},
-      "composite_score": {{ "total": 0 }},
+      "composite_score": {{ "total": 75 }},
       "thesis_summary": "תקציר קונטרריאני 2-3 משפטים בעברית",
-      "company_description": "תיאור החברה בעברית — 3-4 משפטים על מה החברה עושה",
+      "company_description": "תיאור החברה — 3-4 משפטים בעברית",
       "analyst_ratings": {{
         "consensus": "קנייה/החזק/מכירה",
-        "summary": "סיכום דעת האנליסטים בעברית — 2-3 משפטים",
+        "summary": "סיכום דעת האנליסטים — 2-3 משפטים בעברית",
         "bull_case": "התזה החיובית — משפט אחד",
         "bear_case": "התזה השלילית — משפט אחד"
       }},
@@ -474,7 +508,7 @@ class ContrarianAIEngine:
 }}
 ```
 
-חשוב מאוד: השתמש בדיוק ב-4 מפתחות ה-xray שלמעלה ({', '.join(xray_keys)}). אל תוסיף ואל תשנה מפתחות.
+חשוב מאוד: השתמש בדיוק ב-4 מפתחות ה-xray: {', '.join(xray_keys)}. אל תוסיף ואל תשנה מפתחות.
 החזר JSON בלבד. ללא טקסט נוסף."""
 
 
@@ -482,7 +516,7 @@ class ContrarianAIEngine:
 # JSON EXTRACTION
 # ==============================================================
 def extract_json(text: str) -> Optional[Dict]:
-    """Extract JSON from Gemini response, handling markdown fences and edge cases."""
+    """Extract JSON from Gemini response with multiple fallback methods."""
     if not text or not text.strip():
         return None
 
@@ -492,7 +526,7 @@ def extract_json(text: str) -> Optional[Dict]:
     except (json.JSONDecodeError, ValueError):
         pass
 
-    # Method 2: Strip markdown code fences (multiple patterns)
+    # Method 2: Strip markdown code fences
     cleaned = text.strip()
     for fence in ["```json", "```JSON", "```"]:
         if fence in cleaned:
@@ -502,13 +536,12 @@ def extract_json(text: str) -> Optional[Dict]:
                 break
     if "```" in cleaned:
         cleaned = cleaned.split("```")[0]
-
     try:
         return json.loads(cleaned.strip())
     except (json.JSONDecodeError, ValueError):
         pass
 
-    # Method 3: Find outermost { } with brace matching
+    # Method 3: Brace matching
     start = text.find("{")
     if start == -1:
         return None
@@ -545,7 +578,7 @@ def extract_json(text: str) -> Optional[Dict]:
         except (json.JSONDecodeError, ValueError):
             pass
 
-    # Method 4: Last resort — find last }
+    # Method 4: Last resort
     last_brace = text.rfind("}")
     if last_brace > start:
         try:
@@ -553,19 +586,55 @@ def extract_json(text: str) -> Optional[Dict]:
         except (json.JSONDecodeError, ValueError):
             pass
 
-    log.error(f"All JSON extraction methods failed. Text preview: {text[:200]}")
+    log.error(f"All JSON extraction methods failed. Preview: {text[:200]}")
     return None
 
 
 # ==============================================================
-# VALIDATOR
+# PYDANTIC VALIDATION
+# ==============================================================
+def validate_column_with_pydantic(column_key: str, raw_picks: List[Dict]) -> List[Dict]:
+    """Validate and clean picks using the column's Pydantic model."""
+    xray_model_class = XRAY_MODELS.get(column_key)
+    if not xray_model_class:
+        return raw_picks
+
+    validated = []
+    for pick_data in raw_picks:
+        try:
+            # Validate xray against the column-specific model
+            xray_data = pick_data.get("xray", {})
+            xray_obj = xray_model_class(**xray_data)
+
+            # Validate analyst_ratings if present
+            ar_data = pick_data.get("analyst_ratings")
+            if ar_data and isinstance(ar_data, dict):
+                try:
+                    AnalystRatings(**ar_data)
+                except Exception:
+                    pass  # Non-critical — keep raw data
+
+            # Convert validated xray back to dict
+            pick_data["xray"] = xray_obj.model_dump()
+            validated.append(pick_data)
+            log.info(f"    ✓ {pick_data.get('ticker', '?')} — Pydantic validation passed")
+
+        except Exception as e:
+            log.warning(f"    ✗ {pick_data.get('ticker', '?')} — Pydantic validation failed: {e}")
+            # Still include the pick but log the issue
+            validated.append(pick_data)
+
+    return validated
+
+
+# ==============================================================
+# OUTPUT VALIDATOR
 # ==============================================================
 class OutputValidator:
     COLUMNS = ["day_trading", "swing", "position", "investment"]
 
     def validate(self, data: Dict) -> Tuple[bool, List[str]]:
         errors = []
-
         if "meta" not in data:
             errors.append("Missing 'meta'")
         if "matrix" not in data:
@@ -602,7 +671,6 @@ class OutputValidator:
 # MARKET STATUS HELPER
 # ==============================================================
 def get_market_status() -> str:
-    """Determine current US market status."""
     now_et = datetime.now(timezone(timedelta(hours=-4)))
     weekday = now_et.weekday()
     hour = now_et.hour
@@ -628,7 +696,7 @@ def get_market_status() -> str:
 # ==============================================================
 def main():
     log.info("=" * 60)
-    log.info("Q5 COMMAND MATRIX — macro_agent.py")
+    log.info("Q5 COMMAND MATRIX v2.0 — macro_agent.py")
     log.info("=" * 60)
     start_time = time.time()
 
@@ -641,11 +709,10 @@ def main():
     if not light_data:
         log.error("Radar returned no data. Aborting.")
         sys.exit(1)
-
     log.info(f"Radar complete: {len(light_data)} stocks with data")
 
-    # ─── Phase 2: AI TRIAGE ───
-    log.info("PHASE 2: AI TRIAGE")
+    # ─── Phase 2: AI TRIAGE (1 Gemini call) ───
+    log.info("PHASE 2: AI TRIAGE — 1 Gemini call")
     ai = ContrarianAIEngine()
 
     triage_prompt = ai.build_triage_prompt(light_data)
@@ -653,16 +720,15 @@ def main():
     triage_result = extract_json(triage_response)
 
     if not triage_result:
-        log.error("Failed to parse triage response. Raw output saved.")
+        log.error("Failed to parse triage response.")
         log.error(triage_response[:500])
         sys.exit(1)
 
-    # Collect all unique tickers selected
     selected_tickers = set()
-    column_tickers = {}  # type: Dict[str, List[str]]
+    column_tickers: Dict[str, List[str]] = {}
     for col in OutputValidator.COLUMNS:
         picks = triage_result.get(col, [])
-        column_tickers[col] = picks[:3]  # Max 3 per column
+        column_tickers[col] = picks[:3]
         for t in picks[:3]:
             selected_tickers.add(t)
 
@@ -671,39 +737,45 @@ def main():
     # ─── Phase 3: DEEP FETCH ───
     log.info("PHASE 3: DEEP DATA FETCH")
     deep_fetcher = DeepDataFetcher()
-    deep_data_map = {}  # type: Dict[str, Dict]
+    deep_data_map: Dict[str, Dict] = {}
 
     for ticker in selected_tickers:
         log.info(f"  Deep fetch: {ticker}")
         deep_data_map[ticker] = deep_fetcher.fetch_deep(ticker)
-        time.sleep(0.3)  # Rate limiting
+        time.sleep(0.3)
 
-    # ─── Phase 4: AI X-RAY ───
-    log.info("PHASE 4: AI X-RAY ANALYSIS")
+    # ─── Phase 4: AI X-RAY — 4 SEPARATE Gemini calls ───
+    log.info("PHASE 4: AI X-RAY — 4 separate Gemini calls (one per column)")
+
     column_descriptions = {
-        "day_trading": "מסחר יומי — ארביטראז' סמנטי",
-        "swing": "סווינג — רכיבה על קטליזטור",
-        "position": "פוזיציה — שבירת מגמה בצווארי בקבוק",
-        "investment": "השקעה ארוכת טווח — מונופול וחפיר פיזי",
+        "day_trading": "יירוט טקטי — ארביטראז' סמנטי",
+        "swing": "תקיפת קטליזטור — רכיבה על אירוע",
+        "position": "מארב אסטרטגי — צווארי בקבוק וכסף חכם",
+        "investment": "נכסי ברזל — מונופול וחפיר פיזי",
     }
 
     final_matrix = {}
 
     for col in OutputValidator.COLUMNS:
-        log.info(f"  X-Ray for column: {col}")
+        log.info(f"  ── Gemini call for: {col} ──")
         tickers_for_col = column_tickers.get(col, [])
         deep_for_col = [deep_data_map.get(t, {"ticker": t}) for t in tickers_for_col]
 
         xray_prompt = ai.build_xray_prompt(col, column_descriptions[col], deep_for_col)
+
+        log.info(f"  Sending {len(tickers_for_col)} stocks to Gemini for {col}...")
         xray_response = ai.call_gemini(xray_prompt, temperature=0.6)
         xray_result = extract_json(xray_response)
 
         if xray_result and "top_picks" in xray_result:
-            final_matrix[col] = {"top_picks": xray_result["top_picks"]}
+            # Validate each pick with Pydantic
+            validated_picks = validate_column_with_pydantic(col, xray_result["top_picks"])
+            final_matrix[col] = {"top_picks": validated_picks}
+            log.info(f"  ✓ {col}: {len(validated_picks)} picks validated")
         else:
-            log.error(f"  Failed to parse X-Ray for {col}")
+            log.error(f"  ✗ Failed to parse X-Ray for {col}")
             log.error(f"  Raw: {xray_response[:300]}")
-            # Fallback: create minimal entries with column-specific xray keys
+            # Fallback
             col_keys = Config.XRAY_KEYS.get(col, [])
             final_matrix[col] = {
                 "top_picks": [
@@ -714,6 +786,8 @@ def main():
                         "price": {"current": deep_data_map.get(t, {}).get("price", {}).get("current", 0)},
                         "composite_score": {"total": 0},
                         "thesis_summary": "ניתוח לא זמין — נסה שנית",
+                        "company_description": "",
+                        "analyst_ratings": {"consensus": "לא זמין", "summary": "", "bull_case": "", "bear_case": ""},
                         "xray": {k: {"score": 0, "analysis": "לא זמין"} for k in col_keys},
                     }
                     for t in tickers_for_col
@@ -729,6 +803,7 @@ def main():
         "meta": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "market_status": get_market_status(),
+            "pipeline_version": "2.0",
             "radar_stats": {
                 "total_scanned": len(tickers),
                 "with_data": len(light_data),
@@ -746,7 +821,7 @@ def main():
         for err in errors:
             log.warning(f"  - {err}")
     else:
-        log.info("Validation PASSED — all 4 columns × 3 picks × 8 X-Ray params")
+        log.info("Validation PASSED — all 4 columns × 3 picks × 4 X-Ray params each")
 
     # Save
     Config.OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -766,10 +841,7 @@ def main():
     for hf in sorted(Config.HISTORY_DIR.glob("*.json"), reverse=True):
         if hf.name == "index.json":
             continue
-        history_index.append({
-            "date": hf.stem,
-            "file": f"history/{hf.name}",
-        })
+        history_index.append({"date": hf.stem, "file": f"history/{hf.name}"})
     with open(Config.HISTORY_DIR / "index.json", "w", encoding="utf-8") as f:
         json.dump(history_index, f, ensure_ascii=False, indent=2)
     log.info(f"History index updated: {len(history_index)} entries")
@@ -778,7 +850,7 @@ def main():
     log.info(f"Saved to {Config.OUTPUT_FILE}")
     log.info(f"Total time: {elapsed:.1f}s")
     log.info("=" * 60)
-    log.info("Q5 MATRIX COMPLETE")
+    log.info("Q5 MATRIX v2.0 COMPLETE")
     log.info("=" * 60)
 
 

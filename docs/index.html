@@ -3,209 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Q5 // מטריצת שליטה</title>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <title>Q5 // SIGNAL MATRIX</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-main: #0a0a0a; --bg-panel: #141414; --bg-card: #1c1c1c;
-            --border: #333; --accent: #d4af37;
-            --accent-glow: rgba(212, 175, 55, 0.2);
-            --text-main: #e0e0e0; --text-muted: #888;
-            --green: #00c48c; --red: #ff4757; --amber: #f0a030; --purple: #8b5cf6;
+            --bg-main: #060608; --bg-panel: #0e0e12; --bg-card: #151519; --bg-card-hover: #1a1a22;
+            --border: #222230; --border-hover: #d4af37;
+            --accent: #d4af37; --accent-dim: #a08628; --accent-glow: rgba(212,175,55,0.15);
+            --text-main: #e8e8ec; --text-dim: #9a9ab0; --text-muted: #5a5a72;
+            --green: #2dd4a8; --red: #f0506e; --amber: #f5a623; --purple: #8b7cf6;
             --mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+            --radius: 8px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Heebo', sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* ─── LOGIN SCREEN ─── */
+        /* ─── LOGIN ─── */
         .login-screen { position: fixed; inset: 0; background: var(--bg-main); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-screen.hidden { display: none; }
-        .login-box { width: 360px; max-width: 90vw; text-align: center; }
-        .login-logo { font-size: 32px; font-weight: 900; margin-bottom: 6px; letter-spacing: 2px; }
+        .login-box { width: 380px; max-width: 90vw; text-align: center; }
+        .login-logo { font-size: 36px; font-weight: 900; margin-bottom: 4px; letter-spacing: 3px; }
         .login-logo span { color: var(--accent); }
-        .login-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 36px; }
-        .login-label { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; display: block; }
-        .pin-input { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; direction: ltr; }
-        .pin-input input {
-            width: 48px; height: 56px; background: var(--bg-panel); border: 1.5px solid var(--border);
-            border-radius: 10px; color: var(--text-main); font-family: var(--mono); font-size: 22px;
-            font-weight: 700; text-align: center; outline: none; transition: border-color 0.2s;
-            -webkit-text-security: disc;
-        }
-        .pin-input input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .login-tagline { font-size: 11px; color: var(--text-muted); letter-spacing: 6px; text-transform: uppercase; margin-bottom: 40px; }
+        .login-label { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; display: block; }
+        .pin-input { display: flex; gap: 10px; justify-content: center; margin-bottom: 28px; direction: ltr; }
+        .pin-input input { width: 48px; height: 58px; background: var(--bg-panel); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text-main); font-family: var(--mono); font-size: 22px; font-weight: 700; text-align: center; outline: none; transition: all 0.2s; -webkit-text-security: disc; }
+        .pin-input input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px var(--accent-glow); }
         .pin-input input.error { border-color: var(--red); animation: shake 0.4s ease; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
-        .login-btn {
-            width: 100%; padding: 12px; background: var(--accent); color: var(--bg-main); border: none;
-            border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
-        }
-        .login-btn:hover { background: #c49b2f; transform: translateY(-1px); }
-        .login-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-        .login-error { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 18px; }
-        .login-lockout { color: var(--amber); font-size: 12px; margin-top: 12px; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+        .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--accent-dim)); color: var(--bg-main); border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .login-error { color: var(--red); font-size: 12px; margin-top: 14px; min-height: 18px; }
+        .login-lockout { color: var(--amber); }
 
         /* ─── APP ─── */
         .app { display: none; flex-direction: column; height: 100vh; }
         .app.visible { display: flex; }
 
         /* ─── HEADER ─── */
-        header {
-            padding: 20px 32px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center; z-index: 10;
-        }
-        .logo { font-size: 24px; font-weight: 900; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
+        header { padding: 16px 32px; background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-main) 100%); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: 3px; display: flex; align-items: center; gap: 8px; }
         .logo span { color: var(--accent); }
-        .controls { display: flex; gap: 14px; align-items: center; }
-        .timestamp { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-        .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge.open { background: rgba(0,196,140,0.12); color: var(--green); }
-        .badge.closed { background: rgba(255,71,87,0.12); color: var(--red); }
-        .badge.pre_market { background: rgba(240,160,48,0.12); color: var(--amber); }
-        .badge.after_hours { background: rgba(139,92,246,0.12); color: var(--purple); }
-        .badge.weekend { background: rgba(136,136,136,0.12); color: var(--text-muted); }
-        .btn { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: 700; transition: all 0.2s; text-transform: uppercase; font-size: 12px; }
-        .btn:hover { background: var(--accent); color: var(--bg-main); box-shadow: 0 0 10px var(--accent-glow); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .logo-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
+        .controls { display: flex; gap: 12px; align-items: center; }
+        .timestamp { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+        .badge.open { background: rgba(45,212,168,0.1); color: var(--green); border: 1px solid rgba(45,212,168,0.2); }
+        .badge.closed { background: rgba(240,80,110,0.1); color: var(--red); border: 1px solid rgba(240,80,110,0.2); }
+        .badge.pre_market { background: rgba(245,166,35,0.1); color: var(--amber); border: 1px solid rgba(245,166,35,0.2); }
+        .badge.after_hours { background: rgba(139,124,246,0.1); color: var(--purple); border: 1px solid rgba(139,124,246,0.2); }
+        .badge.weekend { background: rgba(90,90,114,0.1); color: var(--text-muted); border: 1px solid rgba(90,90,114,0.2); }
+        .btn { background: transparent; color: var(--accent); border: 1px solid rgba(212,175,55,0.4); padding: 7px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; transition: all 0.25s; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
+        .btn:hover { background: var(--accent); color: var(--bg-main); box-shadow: 0 0 16px var(--accent-glow); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn.running { background: var(--amber); border-color: var(--amber); color: var(--bg-main); animation: pulse 1.5s ease infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        .btn-secondary { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; }
-        .btn-secondary:hover { border-color: var(--red); color: var(--red); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+        .btn-ghost { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 11px; transition: all 0.2s; }
+        .btn-ghost:hover { border-color: var(--red); color: var(--red); }
 
         /* ─── TOOLBAR ─── */
-        .toolbar {
-            display: flex; align-items: center; gap: 14px; padding: 10px 32px;
-            background: var(--bg-panel); border-bottom: 1px solid var(--border); font-size: 12px;
-        }
-        .toolbar label { color: var(--text-muted); white-space: nowrap; }
-        .toolbar select {
-            background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main);
-            padding: 5px 12px; border-radius: 4px; font-size: 12px; font-family: var(--mono); cursor: pointer; outline: none;
-        }
+        .toolbar { display: none; align-items: center; gap: 14px; padding: 8px 32px; background: var(--bg-panel); border-bottom: 1px solid var(--border); font-size: 12px; }
+        .toolbar.show { display: flex; }
+        .toolbar label { color: var(--text-muted); white-space: nowrap; font-size: 11px; }
+        .toolbar select { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-family: var(--mono); cursor: pointer; outline: none; }
         .toolbar select:focus { border-color: var(--accent); }
-        .history-badge { font-size: 11px; color: var(--amber); display: none; }
+        .history-badge { font-size: 11px; color: var(--amber); display: none; font-weight: 700; }
         .history-badge.show { display: inline; }
         .toolbar-spacer { flex: 1; }
-        .methodology-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 5px 14px; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
-        .methodology-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .toolbar-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+        .toolbar-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-        /* ─── METHODOLOGY PANEL ─── */
+        /* ─── METHODOLOGY ─── */
         .methodology-panel { display: none; padding: 20px 32px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
         .methodology-panel.open { display: block; }
-        .meth-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--accent); }
+        .meth-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--accent); letter-spacing: 1px; }
         .meth-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         @media (max-width: 1200px) { .meth-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 700px) { .meth-grid { grid-template-columns: 1fr; } }
-        .meth-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 14px; border-top: 2px solid var(--accent); }
+        .meth-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
         .meth-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--accent); }
-        .meth-card p { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
+        .meth-card p { font-size: 11.5px; color: var(--text-dim); line-height: 1.7; }
 
         /* ─── BOARD ─── */
-        .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding: 32px; flex: 1; overflow-y: auto; }
+        .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 24px 32px; flex: 1; overflow-y: auto; }
+        .board::-webkit-scrollbar { width: 6px; }
+        .board::-webkit-scrollbar-track { background: transparent; }
+        .board::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         @media (max-width: 1200px) { .board { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 700px) { .board { grid-template-columns: 1fr; padding: 12px; gap: 12px; } }
-        .column { display: flex; flex-direction: column; gap: 12px; background: var(--bg-panel); padding: 16px; border-radius: 8px; border: 1px solid var(--border); }
-        .col-header { display: flex; flex-direction: column; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
-        .col-title { font-size: 18px; font-weight: 700; }
-        .col-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-        .card {
-            background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 16px;
-            cursor: pointer; transition: all 0.2s; border-right: 3px solid transparent;
-        }
-        .card:hover { border-right-color: var(--accent); transform: translateX(-4px); background: #222; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .ticker { font-size: 22px; font-weight: 900; }
-        .company-name { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-        .score {
-            background: var(--accent-glow); color: var(--accent); padding: 4px 8px; border-radius: 4px;
-            font-size: 14px; font-weight: 700; border: 1px solid rgba(212, 175, 55, 0.3);
-        }
-        .thesis { font-size: 13px; line-height: 1.5; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        .empty-col { text-align: center; padding: 36px 16px; color: var(--text-muted); font-size: 13px; }
+        .column { display: flex; flex-direction: column; gap: 10px; }
+        .col-header { padding: 14px 16px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); position: relative; overflow: hidden; }
+        .col-header::after { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 2px; }
+        .col--day .col-header::after { background: linear-gradient(90deg, var(--red), transparent); }
+        .col--swing .col-header::after { background: linear-gradient(90deg, var(--amber), transparent); }
+        .col--position .col-header::after { background: linear-gradient(90deg, var(--purple), transparent); }
+        .col--investment .col-header::after { background: linear-gradient(90deg, var(--green), transparent); }
+        .col-title { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+        .col-desc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+        .col-count { position: absolute; top: 14px; left: 16px; font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.25s; position: relative; }
+        .card:hover { border-color: rgba(212,175,55,0.3); background: var(--bg-card-hover); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .card-ticker { font-size: 20px; font-weight: 900; font-family: var(--mono); letter-spacing: 1px; }
+        .card-company { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .card-score { min-width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 16px; font-weight: 900; }
+        .card-score.hi { background: rgba(45,212,168,0.1); color: var(--green); border: 1px solid rgba(45,212,168,0.2); }
+        .card-score.mid { background: rgba(245,166,35,0.1); color: var(--amber); border: 1px solid rgba(245,166,35,0.2); }
+        .card-score.lo { background: rgba(240,80,110,0.1); color: var(--red); border: 1px solid rgba(240,80,110,0.2); }
+        .card-thesis { font-size: 12px; line-height: 1.6; color: var(--text-dim); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; border-top: 1px solid var(--border); padding-top: 10px; }
+        .empty-col { text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 12px; }
 
         /* ─── OVERLAY & DRAWER ─── */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; z-index: 100; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(4px); }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; z-index: 100; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(6px); }
         .overlay.active { display: block; opacity: 1; }
-        .drawer {
-            position: fixed; top: 0; right: -700px; width: 600px; max-width: 100%; height: 100vh;
-            background: var(--bg-main); border-left: 1px solid var(--accent); z-index: 101;
-            transition: right 0.3s; overflow-y: auto; padding: 40px;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
-        }
+        .drawer { position: fixed; top: 0; right: -700px; width: 620px; max-width: 100%; height: 100vh; background: var(--bg-main); border-left: 1px solid rgba(212,175,55,0.2); z-index: 101; transition: right 0.35s cubic-bezier(0.16,1,0.3,1); overflow-y: auto; padding: 36px; box-shadow: -16px 0 48px rgba(0,0,0,0.6); }
         .drawer.open { right: 0; }
-        .close-btn { position: absolute; top: 20px; left: 20px; background: none; border: none; color: var(--text-muted); font-size: 30px; cursor: pointer; }
-        .close-btn:hover { color: var(--text-main); }
-        .d-header { margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-        .d-ticker { font-size: 32px; font-weight: 900; margin-bottom: 4px; color: var(--accent); }
-        .d-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
-        .d-thesis { font-size: 15px; line-height: 1.7; color: var(--text-main); padding: 12px 14px; background: rgba(212,175,55,0.06); border-radius: 6px; border-right: 3px solid var(--accent); }
+        .drawer::-webkit-scrollbar { width: 4px; }
+        .drawer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .close-btn { position: absolute; top: 16px; left: 16px; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-dim); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .close-btn:hover { background: var(--bg-card-hover); color: var(--text-main); }
+        .d-header { margin-top: 40px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .d-ticker { font-size: 30px; font-weight: 900; color: var(--accent); font-family: var(--mono); letter-spacing: 2px; }
+        .d-meta { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+        .d-thesis { font-size: 14px; line-height: 1.75; color: var(--text-main); padding: 14px 16px; background: rgba(212,175,55,0.04); border-radius: var(--radius); border-right: 3px solid var(--accent); margin-top: 14px; }
         .d-score { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
-        .d-score strong { font-size: 22px; color: var(--accent); }
+        .d-score strong { font-size: 24px; color: var(--accent); font-family: var(--mono); }
 
         /* ─── DRAWER SECTIONS ─── */
-        .d-section { margin-bottom: 18px; padding: 14px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; }
-        .d-section-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
-        .d-section-body { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
-        .analyst-consensus { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-        .analyst-tag { padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 700; }
-        .analyst-tag.buy { background: rgba(0,196,140,0.15); color: var(--green); }
-        .analyst-tag.hold { background: rgba(240,160,48,0.15); color: var(--amber); }
-        .analyst-tag.sell { background: rgba(255,71,87,0.15); color: var(--red); }
+        .d-section { margin-bottom: 16px; padding: 14px 16px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); }
+        .d-section-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+        .d-section-body { font-size: 13px; color: var(--text-dim); line-height: 1.75; }
+        .analyst-consensus { display: flex; gap: 8px; margin-bottom: 10px; }
+        .analyst-tag { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .analyst-tag.buy { background: rgba(45,212,168,0.12); color: var(--green); }
+        .analyst-tag.hold { background: rgba(245,166,35,0.12); color: var(--amber); }
+        .analyst-tag.sell { background: rgba(240,80,110,0.12); color: var(--red); }
         .bull-bear { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .bull-bear div { padding: 8px 10px; border-radius: 6px; font-size: 12px; line-height: 1.5; }
-        .bull-case { background: rgba(0,196,140,0.06); border-right: 2px solid var(--green); color: var(--text-muted); }
-        .bear-case { background: rgba(255,71,87,0.06); border-right: 2px solid var(--red); color: var(--text-muted); }
+        .bull-bear div { padding: 10px 12px; border-radius: var(--radius); font-size: 12px; line-height: 1.6; }
+        .bull-case { background: rgba(45,212,168,0.04); border-right: 2px solid var(--green); }
+        .bear-case { background: rgba(240,80,110,0.04); border-right: 2px solid var(--red); }
+        .bull-bear strong { display: block; margin-bottom: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* ─── X-RAY ITEMS ─── */
-        .xray-grid { display: grid; gap: 14px; margin-bottom: 18px; }
-        .xray-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px; position: relative; overflow: hidden; cursor: pointer; }
-        .xray-item::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--accent); }
+        /* ─── X-RAY ─── */
+        .xray-grid { display: grid; gap: 10px; margin-bottom: 16px; }
+        .xray-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .xray-item:hover { background: var(--bg-card); }
+        .xray-item::before { content: ''; position: absolute; top: 0; right: 0; width: 3px; height: 100%; border-radius: 0 var(--radius) var(--radius) 0; }
+        .xray-item.hi::before { background: var(--green); }
+        .xray-item.mid::before { background: var(--amber); }
+        .xray-item.lo::before { background: var(--red); }
         .x-head { display: flex; justify-content: space-between; align-items: center; }
-        .x-title { font-size: 13px; font-weight: 700; color: var(--text-muted); }
-        .x-score { font-size: 15px; font-weight: 900; padding: 2px 9px; border-radius: 5px; }
-        .x-score.hi { background: rgba(0,196,140,0.12); color: var(--green); }
-        .x-score.mid { background: rgba(240,160,48,0.12); color: var(--amber); }
-        .x-score.lo { background: rgba(255,71,87,0.12); color: var(--red); }
-        .x-desc { font-size: 13px; line-height: 1.65; color: #ccc; margin-top: 10px; display: none; }
+        .x-title { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+        .x-score { font-family: var(--mono); font-size: 14px; font-weight: 900; }
+        .x-score.hi { color: var(--green); }
+        .x-score.mid { color: var(--amber); }
+        .x-score.lo { color: var(--red); }
+        .x-desc { font-size: 12.5px; line-height: 1.7; color: var(--text-dim); margin-top: 10px; display: none; padding-top: 10px; border-top: 1px solid var(--border); }
         .xray-item.open .x-desc { display: block; }
 
-        /* ─── METHODOLOGY IN DRAWER ─── */
-        .d-methodology { margin-top: 18px; padding: 12px 14px; background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.15); border-radius: 6px; }
-        .d-methodology-title { font-size: 12px; font-weight: 700; color: var(--purple); margin-bottom: 6px; }
-        .d-methodology-body { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
+        .d-methodology { margin-top: 16px; padding: 12px 14px; background: rgba(139,124,246,0.04); border: 1px solid rgba(139,124,246,0.12); border-radius: var(--radius); }
+        .d-methodology-title { font-size: 11px; font-weight: 700; color: var(--purple); margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
+        .d-methodology-body { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
 
-        /* ─── RUN MODAL ─── */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 400; display: none; align-items: center; justify-content: center; }
+        /* ─── MODAL ─── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 400; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-overlay.show { display: flex; }
-        .modal-box { background: var(--bg-panel); border: 1px solid var(--accent); border-radius: 12px; padding: 28px; width: 340px; max-width: 90vw; text-align: center; }
-        .modal-box h3 { font-size: 16px; margin-bottom: 8px; color: var(--accent); }
-        .modal-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
-        .modal-pin { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; direction: ltr; }
-        .modal-pin input {
-            width: 40px; height: 46px; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 8px;
-            color: var(--text-main); font-family: var(--mono); font-size: 18px; font-weight: 700; text-align: center; outline: none;
-            -webkit-text-security: disc;
-        }
+        .modal-box { background: var(--bg-panel); border: 1px solid rgba(212,175,55,0.2); border-radius: 14px; padding: 32px; width: 360px; max-width: 90vw; text-align: center; }
+        .modal-box h3 { font-size: 16px; margin-bottom: 6px; color: var(--accent); }
+        .modal-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+        .modal-pin { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; direction: ltr; }
+        .modal-pin input { width: 42px; height: 48px; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text-main); font-family: var(--mono); font-size: 18px; font-weight: 700; text-align: center; outline: none; -webkit-text-security: disc; }
         .modal-pin input:focus { border-color: var(--accent); }
         .modal-actions { display: flex; gap: 10px; }
-        .modal-actions button { flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .modal-actions button { flex: 1; padding: 11px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
         .modal-cancel { background: none; border: 1px solid var(--border); color: var(--text-muted); }
-        .modal-confirm { background: var(--accent); border: none; color: var(--bg-main); font-weight: 700; }
-        .modal-error { color: var(--red); font-size: 11px; margin-top: 8px; min-height: 16px; }
+        .modal-confirm { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); border: none; color: var(--bg-main); }
+        .modal-error { color: var(--red); font-size: 11px; margin-top: 10px; min-height: 16px; }
 
-        .loading { text-align: center; padding: 100px 20px; color: var(--text-muted); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 14px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .footer { text-align: center; padding: 10px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); }
+        .loading { text-align: center; color: var(--text-muted); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .footer { text-align: center; padding: 8px; font-size: 10px; color: var(--text-muted); border-top: 1px solid var(--border); letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-<!-- ═══ LOGIN SCREEN ═══ -->
+<!-- LOGIN -->
 <div id="login-screen" class="login-screen">
     <div class="login-box">
-        <div class="login-logo"><span>Q5</span> // MATRIX</div>
-        <div class="login-sub">מטריצת שליטה — גישה מוגבלת</div>
-        <label class="login-label">הזן קוד גישה (6 ספרות)</label>
+        <div class="login-logo"><span>Q5</span> SIGNAL</div>
+        <div class="login-tagline">Contrarian Intelligence</div>
+        <label class="login-label">הזן קוד גישה</label>
         <div class="pin-input" id="pin-container">
             <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off">
             <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off">
@@ -214,63 +203,48 @@
             <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off">
             <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off">
         </div>
-        <button class="login-btn" id="login-btn" onclick="tryLogin()">כניסה</button>
+        <button class="login-btn" id="login-btn" onclick="tryLogin()">כניסה למערכת</button>
         <div class="login-error" id="login-error"></div>
     </div>
 </div>
 
-<!-- ═══ MAIN APP ═══ -->
+<!-- APP -->
 <div id="app" class="app">
     <header>
-        <div class="logo">Q5 <span>//</span> COMMAND MATRIX</div>
+        <div>
+            <div class="logo">Q5 <span>//</span> SIGNAL MATRIX</div>
+            <div class="logo-sub">Contrarian Intelligence System</div>
+        </div>
         <div class="controls">
             <span id="status"></span>
-            <span class="timestamp" id="last-update">ממתין לנתונים...</span>
+            <span class="timestamp" id="last-update"></span>
             <span class="timestamp" id="scanned"></span>
-            <button class="btn" id="run-btn" onclick="showRunModal()">הרץ ניתוח</button>
-            <button class="btn-secondary" onclick="logout()">התנתק</button>
+            <button class="btn" id="run-btn" onclick="showRunModal()">SCAN</button>
+            <button class="btn-ghost" onclick="logout()">יציאה</button>
         </div>
     </header>
 
-    <!-- TOOLBAR: History + Methodology -->
-    <div class="toolbar" id="toolbar" style="display:none;">
-        <label>תאריך ניתוח:</label>
+    <div class="toolbar" id="toolbar">
+        <label>ארכיון:</label>
         <select id="history-select" onchange="loadHistoryDate(this.value)">
             <option value="">ניתוח נוכחי</option>
         </select>
-        <span class="history-badge" id="history-badge">צופה בארכיון</span>
+        <span class="history-badge" id="history-badge">ARCHIVE MODE</span>
         <div class="toolbar-spacer"></div>
-        <button class="methodology-btn" onclick="toggleMethodology()">מתודולוגיה</button>
+        <button class="toolbar-btn" onclick="toggleMethodology()">מתודולוגיה</button>
     </div>
 
-    <!-- METHODOLOGY PANEL -->
     <div class="methodology-panel" id="methodology-panel">
-        <div class="meth-title">פילוסופיית ניתוח קונטרריאנית — Q5 Matrix</div>
+        <div class="meth-title">פילוסופיית ניתוח קונטרריאנית</div>
         <div class="meth-grid">
-            <div class="meth-card">
-                <h4>יירוט טקטי (Day Trading)</h4>
-                <p>ארביטראז' סמנטי — ניצול פערי מחיר שנגרמו מרעש תקשורתי ולא מפגיעה פונדמנטלית. המערכת מזהה פאניקה שמבוססת על כותרות, מלכודות שורט, אנומליות מחזורים, וחנק היצע צף.</p>
-            </div>
-            <div class="meth-card">
-                <h4>תקיפת קטליזטור (Swing)</h4>
-                <p>רכיבה על אירועי קיצון — זיהוי מניות לפני קטליזטור שהשוק מתמחר בחסר. ניתוח אופק אירוע, זרימת אופציות חריגה, פעילות אינסיידרים, ושינוי נרטיב סקטוריאלי.</p>
-            </div>
-            <div class="meth-card">
-                <h4>מארב אסטרטגי (Position)</h4>
-                <p>מעקב כסף מוסדי וצווארי בקבוק — זיהוי הצטברות שקטה של מוסדיים, חוסרים מבניים באספקה, מיצוי קונצנזוס אנליסטים, ורוח גבית מאקרו-כלכלית נסתרת.</p>
-            </div>
-            <div class="meth-card">
-                <h4>נכסי ברזל (Investment)</h4>
-                <p>חפיר כלכלי ושליטת עומק — חברות עם כוח מיקוח בלתי ניתן לשכפול, אסימטריית חוב אינפלציונית, פרדוקס ESG שחוסם מתחרים, והנהלה שמקצה הון בחוכמה.</p>
-            </div>
+            <div class="meth-card"><h4>יירוט טקטי</h4><p>ארביטראז' סמנטי — ניצול פערי מחיר מרעש תקשורתי. פאניקה סמנטית, מלכודות שורט, אנומליות מחזורים, וחנק היצע צף.</p></div>
+            <div class="meth-card"><h4>תקיפת קטליזטור</h4><p>רכיבה על אירועי קיצון — מניות לפני קטליזטור שהשוק מתמחר בחסר. אופק אירוע, זרימת אופציות, פעילות אינסיידרים, שינוי נרטיב.</p></div>
+            <div class="meth-card"><h4>מארב אסטרטגי</h4><p>מעקב כסף מוסדי — הצטברות שקטה, חוסרים באספקה, מיצוי קונצנזוס אנליסטים, ורוח גבית מאקרו נסתרת.</p></div>
+            <div class="meth-card"><h4>נכסי ברזל</h4><p>חפיר כלכלי בלתי ניתן לשכפול — כוח מיקוח, אסימטריית חוב, פרדוקס ESG, ומנת משכל הקצאת הון.</p></div>
         </div>
     </div>
 
-    <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <div>טוען נתונים...</div>
-    </div>
-
+    <div id="loading" class="loading"><div class="spinner"></div><div>טוען נתוני מודיעין...</div></div>
     <div class="board" id="board" style="display:none;"></div>
 
     <div class="overlay" id="overlay" onclick="closeDrawer()"></div>
@@ -278,15 +252,14 @@
         <button class="close-btn" onclick="closeDrawer()">&#x00D7;</button>
         <div id="drawer-content"></div>
     </div>
-
     <div id="footer" class="footer" style="display:none;"></div>
 </div>
 
-<!-- ═══ RUN CONFIRMATION MODAL ═══ -->
+<!-- RUN MODAL -->
 <div id="run-modal" class="modal-overlay">
     <div class="modal-box">
-        <h3>הרצת ניתוח חדש</h3>
-        <p>הניתוח ייקח כ-4 דקות. הזן את קוד הגישה לאישור:</p>
+        <h3>הרצת סריקה חדשה</h3>
+        <p>הסריקה תיקח כ-4 דקות. הזן קוד לאישור:</p>
         <div class="modal-pin" id="modal-pin">
             <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
             <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
@@ -296,7 +269,7 @@
             <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
         </div>
         <div class="modal-actions">
-            <button class="modal-confirm" onclick="confirmRun()">אשר והרץ</button>
+            <button class="modal-confirm" onclick="confirmRun()">אשר</button>
             <button class="modal-cancel" onclick="closeRunModal()">ביטול</button>
         </div>
         <div class="modal-error" id="modal-error"></div>
@@ -304,410 +277,97 @@
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════
-// AUTH — PIN loaded from external config.json
-// ═══════════════════════════════════════════════════
-let VALID_HASH = "";
-let SESSION_HOURS = 24;
-let MAX_ATTEMPTS = 5;
-let LOCKOUT_MINUTES = 15;
+// ═══ AUTH ═══
+let VALID_HASH="",SESSION_HOURS=24,MAX_ATTEMPTS=5,LOCKOUT_MINUTES=15,attempts=0,lockedUntil=0;
+(async()=>{try{const r=await fetch("config.json?v="+Date.now());const c=await r.json();VALID_HASH=c.auth.pin_hash;MAX_ATTEMPTS=c.auth.max_attempts||5;LOCKOUT_MINUTES=c.auth.lockout_minutes||15;SESSION_HOURS=c.auth.session_hours||24}catch(e){console.error("Config:",e)}})();
+async function sha256(m){const d=new TextEncoder().encode(m);const h=await crypto.subtle.digest("SHA-256",d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,"0")).join("")}
+(function(){const s=getSession();if(s&&s.expires>Date.now())showApp();else{document.getElementById("login-screen").classList.remove("hidden");setupPinInputs()}})();
+function getSession(){try{const r=sessionStorage.getItem("q5_session");return r?JSON.parse(r):null}catch{return null}}
+function setSession(){sessionStorage.setItem("q5_session",JSON.stringify({ts:Date.now(),expires:Date.now()+(SESSION_HOURS*3600000)}))}
+function setupPinInputs(){const inputs=document.querySelectorAll(".pin-input input");inputs.forEach((inp,i)=>{inp.addEventListener("input",function(){this.value=this.value.replace(/[^0-9]/g,"");if(this.value&&i<inputs.length-1)inputs[i+1].focus();if(i===inputs.length-1&&this.value)tryLogin()});inp.addEventListener("keydown",function(e){if(e.key==="Backspace"&&!this.value&&i>0){inputs[i-1].focus();inputs[i-1].value=""}if(e.key==="Enter")tryLogin()});inp.addEventListener("paste",function(e){e.preventDefault();const p=(e.clipboardData||window.clipboardData).getData("text").replace(/[^0-9]/g,"");for(let j=0;j<Math.min(p.length,inputs.length);j++)inputs[j].value=p[j];if(p.length>=inputs.length){inputs[inputs.length-1].focus();tryLogin()}})});inputs[0].focus()}
+async function tryLogin(){const now=Date.now();if(now<lockedUntil){document.getElementById("login-error").innerHTML='<span class="login-lockout">נעילה. נסה בעוד '+Math.ceil((lockedUntil-now)/60000)+' דקות</span>';return}const inputs=document.querySelectorAll(".pin-input input");let pin="";inputs.forEach(inp=>pin+=inp.value);if(pin.length!==6){document.getElementById("login-error").textContent="הזן 6 ספרות";return}const hash=await sha256(pin);if(hash===VALID_HASH){setSession();showApp()}else{attempts++;if(attempts>=MAX_ATTEMPTS){lockedUntil=Date.now()+(LOCKOUT_MINUTES*60000);document.getElementById("login-error").innerHTML='<span class="login-lockout">נעילה ל-'+LOCKOUT_MINUTES+' דקות</span>';attempts=0}else{document.getElementById("login-error").textContent="קוד שגוי ("+(MAX_ATTEMPTS-attempts)+" נותרו)"}inputs.forEach(inp=>{inp.value="";inp.classList.add("error")});setTimeout(()=>inputs.forEach(inp=>inp.classList.remove("error")),500);inputs[0].focus()}}
+function showApp(){document.getElementById("login-screen").classList.add("hidden");document.getElementById("app").classList.add("visible");loadData()}
+function logout(){sessionStorage.removeItem("q5_session");location.reload()}
 
-(async function loadConfig() {
-    try {
-        const r = await fetch("config.json?v=" + Date.now());
-        const cfg = await r.json();
-        VALID_HASH = cfg.auth.pin_hash;
-        MAX_ATTEMPTS = cfg.auth.max_attempts || 5;
-        LOCKOUT_MINUTES = cfg.auth.lockout_minutes || 15;
-        SESSION_HOURS = cfg.auth.session_hours || 24;
-    } catch(e) { console.error("Config load failed:", e); }
-})();
-
-let attempts = 0;
-let lockedUntil = 0;
-
-async function sha256(message) {
-    const data = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-(function checkSession() {
-    const session = getSession();
-    if (session && session.expires > Date.now()) { showApp(); }
-    else { document.getElementById("login-screen").classList.remove("hidden"); setupPinInputs(); }
-})();
-
-function getSession() {
-    try { const raw = sessionStorage.getItem("q5_session"); return raw ? JSON.parse(raw) : null; } catch { return null; }
-}
-function setSession() {
-    sessionStorage.setItem("q5_session", JSON.stringify({ ts: Date.now(), expires: Date.now() + (SESSION_HOURS * 3600000) }));
-}
-
-function setupPinInputs() {
-    const inputs = document.querySelectorAll(".pin-input input");
-    inputs.forEach((inp, i) => {
-        inp.addEventListener("input", function() {
-            this.value = this.value.replace(/[^0-9]/g, "");
-            if (this.value && i < inputs.length - 1) inputs[i + 1].focus();
-            if (i === inputs.length - 1 && this.value) tryLogin();
-        });
-        inp.addEventListener("keydown", function(e) {
-            if (e.key === "Backspace" && !this.value && i > 0) { inputs[i - 1].focus(); inputs[i - 1].value = ""; }
-            if (e.key === "Enter") tryLogin();
-        });
-        inp.addEventListener("paste", function(e) {
-            e.preventDefault();
-            const paste = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
-            for (let j = 0; j < Math.min(paste.length, inputs.length); j++) inputs[j].value = paste[j];
-            if (paste.length >= inputs.length) { inputs[inputs.length - 1].focus(); tryLogin(); }
-        });
-    });
-    inputs[0].focus();
-}
-
-async function tryLogin() {
-    const now = Date.now();
-    if (now < lockedUntil) {
-        const rem = Math.ceil((lockedUntil - now) / 60000);
-        document.getElementById("login-error").innerHTML = '<span class="login-lockout">נעילה זמנית. נסה שוב בעוד ' + rem + ' דקות</span>';
-        return;
-    }
-    const inputs = document.querySelectorAll(".pin-input input");
-    let pin = ""; inputs.forEach(inp => pin += inp.value);
-    if (pin.length !== 6) { document.getElementById("login-error").textContent = "הזן 6 ספרות"; return; }
-    const hash = await sha256(pin);
-    if (hash === VALID_HASH) { setSession(); showApp(); }
-    else {
-        attempts++;
-        if (attempts >= MAX_ATTEMPTS) {
-            lockedUntil = Date.now() + (LOCKOUT_MINUTES * 60000);
-            document.getElementById("login-error").innerHTML = '<span class="login-lockout">יותר מדי ניסיונות. נעילה ל-' + LOCKOUT_MINUTES + ' דקות</span>';
-            attempts = 0;
-        } else { document.getElementById("login-error").textContent = "קוד שגוי (" + (MAX_ATTEMPTS - attempts) + " ניסיונות נותרו)"; }
-        inputs.forEach(inp => { inp.value = ""; inp.classList.add("error"); });
-        setTimeout(() => inputs.forEach(inp => inp.classList.remove("error")), 500);
-        inputs[0].focus();
-    }
-}
-
-function showApp() {
-    document.getElementById("login-screen").classList.add("hidden");
-    document.getElementById("app").classList.add("visible");
-    loadData();
-}
-
-function logout() { sessionStorage.removeItem("q5_session"); location.reload(); }
-
-// ═══════════════════════════════════════════════════
-// DASHBOARD CONFIG
-// ═══════════════════════════════════════════════════
-const colsConfig = {
-    "day_trading": { title: "יירוט טקטי", desc: "ארביטראז' סמנטי, ניצול פאניקה (0-24 שעות)" },
-    "swing":       { title: "תקיפת קטליזטור", desc: "אירועי קיצון (Event-Driven) ותמחור חסר (ימים-שבועות)" },
-    "position":    { title: "מארב אסטרטגי", desc: "זיהוי צווארי בקבוק ומעקב כסף מוסדי (שבועות-חודשים)" },
-    "investment":  { title: "נכסי ברזל", desc: "חפיר כלכלי, גידור אינפלציוני ושליטת עומק (שנים)" },
+// ═══ CONFIG ═══
+const colsConfig={
+    day_trading:{title:"יירוט טקטי",desc:"ארביטראז' סמנטי — ניצול פאניקה (0-24h)",cls:"col--day"},
+    swing:{title:"תקיפת קטליזטור",desc:"Event-Driven — תמחור חסר (ימים-שבועות)",cls:"col--swing"},
+    position:{title:"מארב אסטרטגי",desc:"צווארי בקבוק — כסף מוסדי (שבועות-חודשים)",cls:"col--position"},
+    investment:{title:"נכסי ברזל",desc:"חפיר כלכלי — שליטת עומק (שנים)",cls:"col--investment"},
+};
+const xrayDictionary={
+    semantic_panic:"מדד הפאניקה הסמנטית",short_trap:"מלכודת שורטיסטים",volume_abnormality:"אנומליית מחזורים",float_choke:"חנק היצע צף",
+    event_horizon:"אופק האירוע",options_flow:"זרימת כסף חכם",insider_moves:"פעילות בעלי עניין",narrative_shift:"שינוי נרטיב",
+    institutional_stealth:"איסוף מוסדי שקט",supply_bottleneck:"צווארי בקבוק באספקה",analyst_exhaustion:"מיצוי אנליסטים",macro_tailwind:"רוח גבית מאקרו",
+    hostage_power:"תופס ערובה",debt_asymmetry:"אסימטריית חוב",esg_premium:"פרדוקס ESG",capital_iq:"מנת משכל הון",
+};
+const COLUMN_METHODOLOGY={
+    day_trading:"זיהוי פערי מחיר מרעש תקשורתי. פאניקה סמנטית, מלכודות שורט, אנומליות נפח, חנק היצע צף.",
+    swing:"מניות לפני קטליזטור שהשוק מתמחר בחסר. אופק אירועים, זרימת אופציות, אינסיידרים, שינוי נרטיב.",
+    position:"כניסה שקטה של כסף מוסדי. הצטברות, צווארי בקבוק, מיצוי אנליסטים, רוח גבית מאקרו.",
+    investment:"חפיר בלתי ניתן לשכפול. כוח מיקוח, אסימטריית חוב, פרדוקס ESG, הקצאת הון חכמה.",
 };
 
-const xrayDictionary = {
-    // Day Trading
-    "semantic_panic": "מדד הפאניקה הסמנטית",
-    "short_trap": "מלכודת שורטיסטים",
-    "volume_abnormality": "אנומליית מחזורים",
-    "float_choke": "חנק היצע צף",
-    // Swing
-    "event_horizon": "אופק האירוע (קטליזטור)",
-    "options_flow": "זרימת כסף חכם (אופציות)",
-    "insider_moves": "פעילות בעלי עניין",
-    "narrative_shift": "שינוי נרטיב סקטוריאלי",
-    // Position
-    "institutional_stealth": "איסוף מוסדי שקט",
-    "supply_bottleneck": "צווארי בקבוק באספקה",
-    "analyst_exhaustion": "מיצוי אנליסטים והיפוך",
-    "macro_tailwind": "רוח גבית מאקרו-כלכלית",
-    // Investment
-    "hostage_power": "תופס ערובה (כוח מיקוח)",
-    "debt_asymmetry": "אסימטריית חוב אינפלציונית",
-    "esg_premium": "פרדוקס האתיקה (ESG)",
-    "capital_iq": "מנת משכל (הקצאת הון)",
-};
+let DATA=null,HISTORY_INDEX=[],viewingHistory=false;
 
-const COLUMN_METHODOLOGY = {
-    day_trading: "הגישה הקונטרריאנית ליירוט טקטי מתמקדת בזיהוי פערי מחיר שנגרמו מרעש תקשורתי. כשמניה צונחת על כותרת מטעה — זו הזדמנות. הניתוח בוחן פאניקה סמנטית, מלכודות שורט, אנומליות נפח, וחנק היצע צף.",
-    swing: "תקיפת קטליזטור מזהה מניות לפני אירוע מכונן שהשוק מתמחר בחסר. הניתוח בוחן אופק אירועים, זרימת אופציות חריגה, פעילות אינסיידרים, ושינוי נרטיב סקטוריאלי.",
-    position: "מארב אסטרטגי עוקב אחרי כניסה שקטה של כסף מוסדי לסקטורים עם חוסרים מבניים. הניתוח בוחן הצטברות שקטה, צווארי בקבוק באספקה, מיצוי אנליסטים, ורוח גבית מאקרו.",
-    investment: "נכסי ברזל מחפשים חפיר כלכלי בלתי ניתן לשכפול — זיכיונות, כורים, תשתיות. הציון משקלל כוח מיקוח, אסימטריית חוב, פרדוקס ESG, ומנת משכל הקצאת הון.",
-};
+// ═══ DATA ═══
+async function loadData(){try{const r=await fetch("master_data.json?v="+Date.now());if(!r.ok)throw new Error(r.status);DATA=await r.json();render();loadHistoryIndex()}catch(e){document.getElementById("loading").innerHTML='<div style="color:var(--red)">שגיאה בטעינת נתונים</div><div style="margin-top:8px;font-size:12px;color:var(--text-muted)">'+e.message+'</div>'}}
+async function loadHistoryIndex(){try{const r=await fetch("history/index.json?v="+Date.now());if(!r.ok)return;HISTORY_INDEX=await r.json();if(HISTORY_INDEX.length>0){const sel=document.getElementById("history-select");HISTORY_INDEX.forEach(e=>{const o=document.createElement("option");o.value=e.file;o.textContent=e.date;sel.appendChild(o)});document.getElementById("toolbar").classList.add("show")}}catch(e){}}
+async function loadHistoryDate(f){if(!f){viewingHistory=false;document.getElementById("history-badge").classList.remove("show");try{const r=await fetch("master_data.json?v="+Date.now());DATA=await r.json();render()}catch(e){}return}try{const r=await fetch(f+"?v="+Date.now());if(!r.ok)throw new Error(r.status);DATA=await r.json();viewingHistory=true;document.getElementById("history-badge").classList.add("show");render()}catch(e){alert("שגיאה בטעינת ארכיון")}}
+function toggleMethodology(){document.getElementById("methodology-panel").classList.toggle("open")}
 
-let DATA = null;
-let HISTORY_INDEX = [];
-let viewingHistory = false;
-
-// ═══════════════════════════════════════════════════
-// DATA LOADING
-// ═══════════════════════════════════════════════════
-async function loadData() {
-    try {
-        const response = await fetch("master_data.json?v=" + Date.now());
-        if (!response.ok) throw new Error(response.status);
-        DATA = await response.json();
-        render();
-        loadHistoryIndex();
-    } catch (err) {
-        document.getElementById("loading").innerHTML =
-            '<div style="color:var(--red);">שגיאה בטעינת נתונים</div>' +
-            '<div style="margin-top:6px;font-size:12px;color:var(--text-muted);">הרץ את הבקאנד קודם — ' + err.message + '</div>';
-    }
+// ═══ RENDER ═══
+function render(){
+    document.getElementById("loading").style.display="none";
+    const board=document.getElementById("board");board.style.display="grid";
+    const m=DATA.meta||{};const s=m.market_status||"unknown";
+    const sl={open:"שוק פתוח",closed:"שוק סגור",pre_market:"טרום מסחר",after_hours:"אחרי שעות",weekend:"סופ\"ש"};
+    document.getElementById("status").innerHTML='<span class="badge '+s+'">'+(sl[s]||s)+'</span>';
+    if(m.generated_at)document.getElementById("last-update").textContent=new Date(m.generated_at).toLocaleString("he-IL");
+    if(m.radar_stats){document.getElementById("scanned").textContent=m.radar_stats.total_scanned+" נסרקו";const ft=document.getElementById("footer");ft.style.display="block";ft.textContent="Q5 SIGNAL // "+m.radar_stats.total_scanned+" scanned / "+m.radar_stats.selected_for_analysis+" analyzed / v"+(m.pipeline_version||"1")}
+    const matrix=DATA.matrix||{};board.innerHTML="";
+    Object.keys(colsConfig).forEach(colId=>{
+        const colDiv=document.createElement("div");colDiv.className="column "+(colsConfig[colId].cls||"");
+        const picks=(matrix[colId]||{}).top_picks||[];
+        colDiv.innerHTML='<div class="col-header"><div class="col-title">'+colsConfig[colId].title+'</div><div class="col-desc">'+colsConfig[colId].desc+'</div><div class="col-count">'+picks.length+'/3</div></div>';
+        if(!picks.length){colDiv.innerHTML+='<div class="empty-col">אין נתונים</div>'}else{
+            picks.forEach((stock,idx)=>{const sc=(stock.composite_score||{}).total||0;const cls=sc>=70?"hi":sc>=45?"mid":"lo";
+                const card=document.createElement("div");card.className="card";card.onclick=()=>openDrawer(colId,idx);
+                card.innerHTML='<div class="card-top"><div><div class="card-ticker">'+(stock.ticker||"?")+'</div><div class="card-company">'+(stock.company_name||"")+'</div></div><div class="card-score '+cls+'">'+sc+'</div></div>'+(stock.thesis_summary?'<div class="card-thesis">'+stock.thesis_summary+'</div>':'');
+                colDiv.appendChild(card)})
+        }board.appendChild(colDiv)})
 }
 
-async function loadHistoryIndex() {
-    try {
-        const r = await fetch("history/index.json?v=" + Date.now());
-        if (!r.ok) return;
-        HISTORY_INDEX = await r.json();
-        if (HISTORY_INDEX.length > 0) {
-            const sel = document.getElementById("history-select");
-            HISTORY_INDEX.forEach(entry => {
-                const opt = document.createElement("option");
-                opt.value = entry.file;
-                opt.textContent = entry.date;
-                sel.appendChild(opt);
-            });
-            document.getElementById("toolbar").style.display = "flex";
-        }
-    } catch(e) { console.log("No history index yet"); }
-}
+// ═══ DRAWER ═══
+function openDrawer(colKey,idx){
+    const p=DATA.matrix[colKey].top_picks[idx];if(!p)return;
+    const xray=p.xray||{};const sc=(p.composite_score||{}).total||0;
+    let h='<div class="d-header"><div class="d-ticker">'+p.ticker+'</div><div class="d-meta">'+(p.company_name||"")+(p.sector?" // "+p.sector:"")+'</div>';
+    if(p.thesis_summary)h+='<div class="d-thesis">'+p.thesis_summary+'</div>';
+    h+='</div><div class="d-score">ציון מרוכב: <strong>'+sc+'</strong> / 100</div>';
+    if(p.company_description){h+='<div class="d-section"><div class="d-section-title">על החברה</div><div class="d-section-body">'+p.company_description+'</div></div>'}
+    const ar=p.analyst_ratings||{};
+    if(ar.consensus||ar.summary){h+='<div class="d-section"><div class="d-section-title">שעון אנליסטים</div>';
+        if(ar.consensus){let tc="hold";if(ar.consensus.includes("קנייה")||ar.consensus.toLowerCase().includes("buy"))tc="buy";else if(ar.consensus.includes("מכירה")||ar.consensus.toLowerCase().includes("sell"))tc="sell";h+='<div class="analyst-consensus"><span class="analyst-tag '+tc+'">'+ar.consensus+'</span></div>'}
+        if(ar.summary)h+='<div class="d-section-body">'+ar.summary+'</div>';
+        if(ar.bull_case||ar.bear_case){h+='<div class="bull-bear">';if(ar.bull_case)h+='<div class="bull-case"><strong style="color:var(--green)">BULL</strong>'+ar.bull_case+'</div>';if(ar.bear_case)h+='<div class="bear-case"><strong style="color:var(--red)">BEAR</strong>'+ar.bear_case+'</div>';h+='</div>'}h+='</div>'}
+    h+='<div class="xray-grid">';
+    Object.keys(xray).forEach(key=>{const param=xray[key]||{};const ps=param.score||0;const cls=ps>=70?"hi":ps>=45?"mid":"lo";
+        h+='<div class="xray-item '+cls+'" onclick="this.classList.toggle(\'open\')"><div class="x-head"><span class="x-title">'+(xrayDictionary[key]||key)+'</span><span class="x-score '+cls+'">'+ps+'</span></div><div class="x-desc">'+(param.analysis||"—")+'</div></div>'});
+    h+='</div>';
+    const mt=COLUMN_METHODOLOGY[colKey]||"";
+    if(mt)h+='<div class="d-methodology"><div class="d-methodology-title">מתודולוגיה — '+colsConfig[colKey].title+'</div><div class="d-methodology-body">'+mt+'</div></div>';
+    document.getElementById("drawer-content").innerHTML=h;document.getElementById("drawer").classList.add("open");document.getElementById("overlay").classList.add("active")}
+function closeDrawer(){document.getElementById("drawer").classList.remove("open");document.getElementById("overlay").classList.remove("active")}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
 
-async function loadHistoryDate(file) {
-    if (!file) {
-        viewingHistory = false;
-        document.getElementById("history-badge").classList.remove("show");
-        try { const r = await fetch("master_data.json?v=" + Date.now()); DATA = await r.json(); render(); } catch(e) {}
-        return;
-    }
-    try {
-        const r = await fetch(file + "?v=" + Date.now());
-        if (!r.ok) throw new Error(r.status);
-        DATA = await r.json();
-        viewingHistory = true;
-        document.getElementById("history-badge").classList.add("show");
-        render();
-    } catch(e) { alert("שגיאה בטעינת ניתוח מהארכיון"); }
-}
-
-function toggleMethodology() { document.getElementById("methodology-panel").classList.toggle("open"); }
-
-// ═══════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════
-function render() {
-    document.getElementById("loading").style.display = "none";
-    const board = document.getElementById("board");
-    board.style.display = "grid";
-
-    // Meta info
-    const m = DATA.meta || {};
-    const s = m.market_status || "unknown";
-    const statusLabels = { open: "שוק פתוח", closed: "שוק סגור", pre_market: "טרום מסחר", after_hours: "אחרי המסחר", weekend: "סופ\"ש" };
-    document.getElementById("status").innerHTML = '<span class="badge ' + s + '">' + (statusLabels[s] || s) + '</span>';
-
-    if (m.generated_at) {
-        document.getElementById("last-update").textContent = "עדכון: " + new Date(m.generated_at).toLocaleString("he-IL");
-    }
-    if (m.radar_stats) {
-        document.getElementById("scanned").textContent = m.radar_stats.total_scanned + " מניות נסרקו";
-        const ft = document.getElementById("footer");
-        ft.style.display = "block";
-        ft.textContent = "ראדר: " + (m.radar_stats.total_scanned || "?") + " נסרקו | " + (m.radar_stats.selected_for_analysis || "?") + " נבחרו לניתוח";
-    }
-
-    // Build board
-    const matrix = DATA.matrix || {};
-    board.innerHTML = "";
-
-    Object.keys(colsConfig).forEach(colId => {
-        const colDiv = document.createElement("div");
-        colDiv.className = "column";
-
-        const picks = (matrix[colId] || {}).top_picks || [];
-
-        let headerHTML = '<div class="col-header"><div class="col-title">' + colsConfig[colId].title + '</div>';
-        headerHTML += '<div class="col-desc">' + colsConfig[colId].desc + '</div></div>';
-        colDiv.innerHTML = headerHTML;
-
-        if (!picks.length) {
-            colDiv.innerHTML += '<div class="empty-col">אין נתונים לסבב הנוכחי</div>';
-        } else {
-            picks.forEach((stock, idx) => {
-                const sc = (stock.composite_score || {}).total || 0;
-                const card = document.createElement("div");
-                card.className = "card";
-                card.onclick = () => openDrawer(colId, idx);
-                card.innerHTML =
-                    '<div class="card-header">' +
-                    '  <div><span class="ticker">' + (stock.ticker || "?") + '</span>' +
-                    '  <div class="company-name">' + (stock.company_name || "") + '</div></div>' +
-                    '  <span class="score">' + sc + '</span>' +
-                    '</div>' +
-                    (stock.thesis_summary ? '<div class="thesis">' + stock.thesis_summary + '</div>' : '');
-                colDiv.appendChild(card);
-            });
-        }
-        board.appendChild(colDiv);
-    });
-}
-
-// ═══════════════════════════════════════════════════
-// DRAWER
-// ═══════════════════════════════════════════════════
-function openDrawer(colKey, idx) {
-    const p = DATA.matrix[colKey].top_picks[idx];
-    if (!p) return;
-
-    const xray = p.xray || {};
-    const sc = (p.composite_score || {}).total || 0;
-
-    let h = '<div class="d-header">';
-    h += '<div class="d-ticker">' + p.ticker + '</div>';
-    h += '<div class="d-meta">' + (p.company_name || "") + (p.sector ? " | " + p.sector : "") + '</div>';
-    if (p.thesis_summary) h += '<div class="d-thesis">' + p.thesis_summary + '</div>';
-    h += '</div>';
-    h += '<div class="d-score">ציון מרוכב: <strong>' + sc + '</strong> / 100</div>';
-
-    // Company Description
-    if (p.company_description) {
-        h += '<div class="d-section"><div class="d-section-title">על החברה</div>';
-        h += '<div class="d-section-body">' + p.company_description + '</div></div>';
-    }
-
-    // Analyst Ratings
-    const ar = p.analyst_ratings || {};
-    if (ar.consensus || ar.summary) {
-        h += '<div class="d-section"><div class="d-section-title">שעון אנליסטים</div>';
-        if (ar.consensus) {
-            let tagClass = "hold";
-            if (ar.consensus.includes("קנייה") || ar.consensus.toLowerCase().includes("buy")) tagClass = "buy";
-            else if (ar.consensus.includes("מכירה") || ar.consensus.toLowerCase().includes("sell")) tagClass = "sell";
-            h += '<div class="analyst-consensus"><span class="analyst-tag ' + tagClass + '">' + ar.consensus + '</span></div>';
-        }
-        if (ar.summary) h += '<div class="d-section-body">' + ar.summary + '</div>';
-        if (ar.bull_case || ar.bear_case) {
-            h += '<div class="bull-bear">';
-            if (ar.bull_case) h += '<div class="bull-case"><strong style="color:var(--green);">תזה חיובית:</strong> ' + ar.bull_case + '</div>';
-            if (ar.bear_case) h += '<div class="bear-case"><strong style="color:var(--red);">תזה שלילית:</strong> ' + ar.bear_case + '</div>';
-            h += '</div>';
-        }
-        h += '</div>';
-    }
-
-    // X-Ray Parameters (dynamic per column)
-    h += '<div class="xray-grid">';
-    Object.keys(xray).forEach(key => {
-        const param = xray[key] || {};
-        const ps = param.score || 0;
-        const cls = ps >= 70 ? "hi" : ps >= 45 ? "mid" : "lo";
-        const hebrewTitle = xrayDictionary[key] || key;
-
-        h += '<div class="xray-item" onclick="this.classList.toggle(\'open\')">';
-        h += '<div class="x-head">';
-        h += '<span class="x-title">' + hebrewTitle + '</span>';
-        h += '<span class="x-score ' + cls + '">' + ps + '</span>';
-        h += '</div>';
-        h += '<div class="x-desc">' + (param.analysis || "ניתוח לא זמין") + '</div>';
-        h += '</div>';
-    });
-    h += '</div>';
-
-    // Methodology for this column
-    const methText = COLUMN_METHODOLOGY[colKey] || "";
-    if (methText) {
-        h += '<div class="d-methodology">';
-        h += '<div class="d-methodology-title">מתודולוגיה — ' + colsConfig[colKey].title + '</div>';
-        h += '<div class="d-methodology-body">' + methText + '</div>';
-        h += '</div>';
-    }
-
-    document.getElementById("drawer-content").innerHTML = h;
-    document.getElementById("drawer").classList.add("open");
-    document.getElementById("overlay").classList.add("active");
-}
-
-function closeDrawer() {
-    document.getElementById("drawer").classList.remove("open");
-    document.getElementById("overlay").classList.remove("active");
-}
-
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
-
-// ═══════════════════════════════════════════════════
-// RUN ANALYSIS
-// ═══════════════════════════════════════════════════
-function showRunModal() {
-    document.getElementById("run-modal").classList.add("show");
-    document.getElementById("modal-error").textContent = "";
-    const inputs = document.querySelectorAll("#modal-pin input");
-    inputs.forEach(inp => inp.value = "");
-    setupModalPinInputs();
-    inputs[0].focus();
-}
-
-function closeRunModal() { document.getElementById("run-modal").classList.remove("show"); }
-
-function setupModalPinInputs() {
-    const inputs = document.querySelectorAll("#modal-pin input");
-    inputs.forEach((inp, i) => {
-        inp.oninput = function() {
-            this.value = this.value.replace(/[^0-9]/g, "");
-            if (this.value && i < inputs.length - 1) inputs[i + 1].focus();
-            if (i === inputs.length - 1 && this.value) confirmRun();
-        };
-        inp.onkeydown = function(e) {
-            if (e.key === "Backspace" && !this.value && i > 0) { inputs[i - 1].focus(); inputs[i - 1].value = ""; }
-            if (e.key === "Enter") confirmRun();
-            if (e.key === "Escape") closeRunModal();
-        };
-    });
-}
-
-async function confirmRun() {
-    const inputs = document.querySelectorAll("#modal-pin input");
-    let pin = ""; inputs.forEach(inp => pin += inp.value);
-    if (pin.length !== 6) { document.getElementById("modal-error").textContent = "הזן 6 ספרות"; return; }
-    const hash = await sha256(pin);
-    if (hash !== VALID_HASH) {
-        document.getElementById("modal-error").textContent = "קוד שגוי";
-        inputs.forEach(inp => inp.value = ""); inputs[0].focus(); return;
-    }
-    closeRunModal();
-    triggerWorkflow();
-}
-
-async function triggerWorkflow() {
-    const btn = document.getElementById("run-btn");
-    btn.textContent = "מריץ...";
-    btn.classList.add("running");
-    btn.disabled = true;
-    try {
-        const _e = "d1NlUDUwMmdVMWptVkk5OHV2bFpOSmJjMHZkRnRteDJ2bDREX3BoZw==";
-        const _d = atob(_e).split("").reverse().join("");
-        const resp = await fetch("https://api.github.com/repos/itzhak-iab/Q5-Matrix/actions/workflows/daily_matrix.yml/dispatches", {
-            method: "POST",
-            headers: { "Authorization": "token " + _d, "Accept": "application/vnd.github+json" },
-            body: JSON.stringify({ ref: "main" }),
-        });
-        if (resp.status === 204 || resp.ok) {
-            btn.textContent = "הניתוח רץ — יסתיים בעוד ~4 דקות";
-            btn.classList.remove("running");
-            setTimeout(() => { btn.textContent = "מרענן..."; location.reload(); }, 5 * 60 * 1000);
-        } else { throw new Error("Status " + resp.status); }
-    } catch (e) {
-        btn.textContent = "שגיאה — נסה שוב";
-        btn.classList.remove("running");
-        btn.disabled = false;
-        console.error("Trigger failed:", e);
-    }
-}
+// ═══ RUN ═══
+function showRunModal(){document.getElementById("run-modal").classList.add("show");document.getElementById("modal-error").textContent="";const inputs=document.querySelectorAll("#modal-pin input");inputs.forEach(inp=>inp.value="");setupModalPinInputs();inputs[0].focus()}
+function closeRunModal(){document.getElementById("run-modal").classList.remove("show")}
+function setupModalPinInputs(){const inputs=document.querySelectorAll("#modal-pin input");inputs.forEach((inp,i)=>{inp.oninput=function(){this.value=this.value.replace(/[^0-9]/g,"");if(this.value&&i<inputs.length-1)inputs[i+1].focus();if(i===inputs.length-1&&this.value)confirmRun()};inp.onkeydown=function(e){if(e.key==="Backspace"&&!this.value&&i>0){inputs[i-1].focus();inputs[i-1].value=""}if(e.key==="Enter")confirmRun();if(e.key==="Escape")closeRunModal()}})}
+async function confirmRun(){const inputs=document.querySelectorAll("#modal-pin input");let pin="";inputs.forEach(inp=>pin+=inp.value);if(pin.length!==6){document.getElementById("modal-error").textContent="הזן 6 ספרות";return}const hash=await sha256(pin);if(hash!==VALID_HASH){document.getElementById("modal-error").textContent="קוד שגוי";inputs.forEach(inp=>inp.value="");inputs[0].focus();return}closeRunModal();triggerWorkflow()}
+async function triggerWorkflow(){const btn=document.getElementById("run-btn");btn.textContent="SCANNING...";btn.classList.add("running");btn.disabled=true;try{const _e="d1NlUDUwMmdVMWptVkk5OHV2bFpOSmJjMHZkRnRteDJ2bDREX3BoZw==";const _d=atob(_e).split("").reverse().join("");const resp=await fetch("https://api.github.com/repos/itzhak-iab/Q5-Matrix/actions/workflows/daily_matrix.yml/dispatches",{method:"POST",headers:{"Authorization":"token "+_d,"Accept":"application/vnd.github+json"},body:JSON.stringify({ref:"main"})});if(resp.status===204||resp.ok){btn.textContent="SCAN RUNNING — ~4 MIN";btn.classList.remove("running");setTimeout(()=>{btn.textContent="REFRESHING...";location.reload()},5*60*1000)}else throw new Error("Status "+resp.status)}catch(e){btn.textContent="ERROR — RETRY";btn.classList.remove("running");btn.disabled=false;console.error("Trigger:",e)}}
 </script>
 </body>
 </html>
