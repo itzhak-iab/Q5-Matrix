@@ -47,4 +47,5 @@ jobs:
           git config user.email "bot@q5-matrix.local"
           git add docs/master_data.json
           git diff --staged --quiet || git commit -m "Update matrix data — $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main || true
           git push

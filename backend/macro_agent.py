@@ -100,8 +100,8 @@ class RadarScanner:
     """Dynamically discovers ~50 interesting stocks from contrarian sectors + screeners."""
 
     CONTRARIAN_UNIVERSE = {
-        "shipping": ["STNG", "GOGL", "EGLE", "SBLK", "ZIM", "DAC", "GSL"],
-        "coal_energy": ["BTU", "ARCH", "CEIX", "AMR", "HCC"],
+        "shipping": ["STNG", "EGLE", "SBLK", "ZIM", "DAC", "GSL"],
+        "coal_energy": ["BTU", "AMR", "HCC", "ARLP", "CTRA"],
         "tobacco_sin": ["MO", "PM", "BTI", "IMBBY"],
         "defense": ["LMT", "RTX", "NOC", "GD", "HII"],
         "nuclear_uranium": ["CCJ", "UEC", "LEU", "NNE", "SMR"],
@@ -117,39 +117,28 @@ class RadarScanner:
         "industrial_boring": ["CMI", "CAT", "DE", "PCAR"],
     }
 
-    SCREENER_QUERIES = [
-        "most_actives",
-        "day_losers",
-        "day_gainers",
-        "undervalued_large_caps",
+    # Additional trending tickers to add diversity beyond the static universe
+    EXTRA_TICKERS = [
+        "INTC", "BA", "PYPL", "DIS", "NCLH", "CCL",  # beaten-down large caps
+        "CLF", "X", "AA", "FCX",                       # metals/materials
+        "OXY", "DVN", "HAL", "SLB",                    # energy services
+        "KMI", "WMB", "OKE",                            # midstream
     ]
 
     def scan(self) -> List[str]:
-        """Returns a deduplicated list of tickers from universe + screeners."""
+        """Returns a deduplicated list of tickers from universe + extras."""
         all_tickers = set()
 
         # Static universe
         for sector, tickers in self.CONTRARIAN_UNIVERSE.items():
             for t in tickers:
                 all_tickers.add(t)
-        log.info(f"Universe tickers: {len(all_tickers)}")
 
-        # Dynamic screeners
-        for query in self.SCREENER_QUERIES:
-            try:
-                screener = yf.Screener()
-                screener.set_default_body(query)
-                resp = screener.response
-                quotes = resp.get("quotes", [])
-                for q in quotes:
-                    sym = q.get("symbol", "")
-                    if sym and "." not in sym and len(sym) <= 5:
-                        all_tickers.add(sym)
-                log.info(f"Screener '{query}': +{len(quotes)} tickers")
-            except Exception as e:
-                log.warning(f"Screener '{query}' failed: {e}")
+        # Extra tickers for diversity
+        for t in self.EXTRA_TICKERS:
+            all_tickers.add(t)
 
-        log.info(f"Total unique tickers after radar: {len(all_tickers)}")
+        log.info(f"Total universe tickers: {len(all_tickers)}")
         return sorted(all_tickers)
 
     def fetch_light_data(self, tickers: List[str]) -> List[Dict]:
@@ -475,36 +464,78 @@ class ContrarianAIEngine:
 # JSON EXTRACTION
 # ==============================================================
 def extract_json(text: str) -> Optional[Dict]:
-    """Extract JSON from Gemini response, handling markdown fences."""
-    # Try direct parse
+    """Extract JSON from Gemini response, handling markdown fences and edge cases."""
+    if not text or not text.strip():
+        return None
+
+    # Method 1: Direct parse
     try:
-        return json.loads(text)
-    except json.JSONDecodeError:
+        return json.loads(text.strip())
+    except (json.JSONDecodeError, ValueError):
         pass
 
-    # Strip markdown code fences
+    # Method 2: Strip markdown code fences (multiple patterns)
     cleaned = text.strip()
-    if "```json" in cleaned:
-        cleaned = cleaned.split("```json", 1)[1]
-    elif "```" in cleaned:
-        cleaned = cleaned.split("```", 1)[1]
+    for fence in ["```json", "```JSON", "```"]:
+        if fence in cleaned:
+            parts = cleaned.split(fence, 1)
+            if len(parts) > 1:
+                cleaned = parts[1]
+                break
     if "```" in cleaned:
-        cleaned = cleaned.rsplit("```", 1)[0]
+        cleaned = cleaned.split("```")[0]
 
     try:
         return json.loads(cleaned.strip())
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, ValueError):
         pass
 
-    # Brute force: find outermost { }
+    # Method 3: Find outermost { } with brace matching
     start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escape_next = False
+    end = -1
+
+    for i in range(start, len(text)):
+        c = text[i]
+        if escape_next:
+            escape_next = False
+            continue
+        if c == "\\":
+            escape_next = True
+            continue
+        if c == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+
+    if end > start:
         try:
             return json.loads(text[start:end + 1])
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             pass
 
+    # Method 4: Last resort — find last }
+    last_brace = text.rfind("}")
+    if last_brace > start:
+        try:
+            return json.loads(text[start:last_brace + 1])
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    log.error(f"All JSON extraction methods failed. Text preview: {text[:200]}")
     return None
 
 
