@@ -156,8 +156,9 @@ class Config:
     OUTPUT_FILE = Path(__file__).parent.parent / "docs" / "master_data.json"
     HISTORY_DIR = Path(__file__).parent.parent / "docs" / "history"
     CONFIG_FILE = Path(__file__).parent.parent / "docs" / "config.json"
-    MAX_RETRIES = 3
+    MAX_RETRIES = 4
     RETRY_DELAY = 5
+    RATE_LIMIT_DELAY = 65  # seconds to wait on 429 rate limit
 
     # 4 X-Ray parameters PER COLUMN (unique per time horizon)
     XRAY_KEYS = {
@@ -420,9 +421,16 @@ class ContrarianAIEngine:
                     )
                     return response.text or ""
             except Exception as e:
-                log.warning(f"Gemini attempt {attempt}/{Config.MAX_RETRIES} failed: {e}")
+                err_str = str(e)
+                log.warning(f"Gemini attempt {attempt}/{Config.MAX_RETRIES} failed: {err_str[:200]}")
                 if attempt < Config.MAX_RETRIES:
-                    time.sleep(Config.RETRY_DELAY * attempt)
+                    # On rate limit (429), wait longer
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        wait = Config.RATE_LIMIT_DELAY
+                        log.info(f"Rate limited — waiting {wait}s before retry...")
+                    else:
+                        wait = Config.RETRY_DELAY * attempt
+                    time.sleep(wait)
                 else:
                     raise
 
