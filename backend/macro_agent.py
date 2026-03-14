@@ -82,17 +82,13 @@ class Config:
     MAX_RETRIES = 3
     RETRY_DELAY = 5
 
-    # 8 X-Ray parameters per PRD
-    XRAY_KEYS = [
-        "earnings_guidance",
-        "regulation",
-        "esg_ethics",
-        "analyst_peak",
-        "boring_premium",
-        "debt_asymmetry",
-        "hostage_power",
-        "capital_iq",
-    ]
+    # 4 X-Ray parameters PER COLUMN (unique per time horizon)
+    XRAY_KEYS = {
+        "day_trading": ["semantic_panic", "short_trap", "volume_abnormality", "float_choke"],
+        "swing": ["event_horizon", "options_flow", "insider_moves", "narrative_shift"],
+        "position": ["institutional_stealth", "supply_bottleneck", "analyst_exhaustion", "macro_tailwind"],
+        "investment": ["hostage_power", "debt_asymmetry", "esg_premium", "capital_iq"],
+    }
 
 
 # ==============================================================
@@ -314,53 +310,44 @@ class ContrarianAIEngine:
 חברה בעלת חפיר כלכלי שלא ניתן לשכפול (זיכיונות, כורים), מאזן חסין אינפלציה, ויכולת ייצור תזרים מזומנים גם במיתון עולמי.
 """
 
-    # ───── X-RAY DEFINITIONS (per PRD Section 4) ─────
-    XRAY_DEFINITIONS = """
-## 8 פרמטרי רנטגן — לכל מניה שנבחרה:
+    # ───── X-RAY DEFINITIONS PER COLUMN ─────
+    XRAY_DEFINITIONS_PER_COLUMN = {
+        "day_trading": """
+## 4 פרמטרי רנטגן — יירוט טקטי (day_trading):
 
-1. **earnings_guidance** (מעקב דוחות וצפי): תאריך הדו"ח הקרוב, צפי האנליסטים מול התזה ההפוכה/נסתרת שלנו.
-2. **regulation** (שדה מוקשים רגולטורי/משפטי): מהו האיום הממשלתי/משפטי המרכזי? האם הוא חוסם מתחרים או סכנה קיומית?
-3. **esg_ethics** (פרדוקס האתיקה וה-ESG): מי מנסה להרוס את החברה? האם החרם חוסם מתחרים ושומר על היצע נמוך?
-4. **analyst_peak** (מדד מיצוי קונצנזוס): האם ההמונים כבר כאן? אם כולם ממליצים "קנייה חזקה" — סימן שלילי. אנו מחפשים שווקים ריקים.
-5. **boring_premium** (ארביטראז' השעמום): יחס Hype-to-FCF. חברות אפורות שמייצרות הררי מזומנים אך ללא סיקור תקשורתי.
-6. **debt_asymmetry** (אסימטריית חוב אינפלציונית): חברות עם חוב ארוך בריבית אפסית קבועה, שמרוויחות משחיקת החוב באינפלציה.
-7. **hostage_power** (רדיוס הפיצוץ ותופס ערובה): האם החברה חוליה קריטית בשרשרת האספקה? האם הלקוח יכול לעבור למתחרה?
-8. **capital_iq** (מנת משכל של הקצאת הון): האם המנכ"ל בונה אימפריות מיותרות או שמרן שמכווץ מניות ומשלם דיבידנדים?
-"""
+1. **semantic_panic** (מדד הפאניקה הסמנטית): מדוד את הפער בין הסנטימנט השלילי ברשתות/כותרות לבין הנזק הפונדמנטלי בפועל. ציון גבוה = פאניקה רבה מתוך רעש בלבד, ללא פגיעה עסקית אמיתית.
+2. **short_trap** (מלכודת שורטיסטים): בדוק את יחס השורט (Short Interest), עלות ההשאלה, וימים לכיסוי. ציון גבוה = שורטיסטים חשופים לסקוויז קרוב.
+3. **volume_abnormality** (אנומליית מחזורים): השווה נפח מסחר נוכחי לממוצע 20 יום. ציון גבוה = נפח חריג שמצביע על פעילות לא-אורגנית (מכירת פאניקה או קנייה מוסדית).
+4. **float_choke** (חנק היצע צף): בדוק את ה-Float — כמות המניות הנסחרות בפועל מול ההחזקות המוסדיות. ציון גבוה = היצע צף נמוך שמגביר תנודתיות ומהירות התאוששות.
+""",
+        "swing": """
+## 4 פרמטרי רנטגן — תקיפת קטליזטור (swing):
 
-    # ───── JSON SCHEMA (per PRD Section 5) ─────
-    JSON_SCHEMA = """{
-  "meta": {
-    "generated_at": "ISO_TIMESTAMP"
-  },
-  "matrix": {
-    "day_trading": {
-      "top_picks": [
-        {
-          "ticker": "XXX",
-          "company_name": "שם החברה בעברית",
-          "sector": "סקטור בעברית",
-          "price": { "current": 0.0 },
-          "composite_score": { "total": 0 },
-          "thesis_summary": "תקציר התזה בעברית — 2-3 משפטים",
-          "xray": {
-            "earnings_guidance": { "score": 0, "analysis": "ניתוח בעברית 2-3 משפטים" },
-            "regulation": { "score": 0, "analysis": "..." },
-            "esg_ethics": { "score": 0, "analysis": "..." },
-            "analyst_peak": { "score": 0, "analysis": "..." },
-            "boring_premium": { "score": 0, "analysis": "..." },
-            "debt_asymmetry": { "score": 0, "analysis": "..." },
-            "hostage_power": { "score": 0, "analysis": "..." },
-            "capital_iq": { "score": 0, "analysis": "..." }
-          }
-        }
-      ]
-    },
-    "swing": { "top_picks": ["3 מניות במבנה זהה"] },
-    "position": { "top_picks": ["3 מניות במבנה זהה"] },
-    "investment": { "top_picks": ["3 מניות במבנה זהה"] }
-  }
-}"""
+1. **event_horizon** (אופק האירוע): זהה את הקטליזטור הקרוב — דו"ח רבעוני, אישור FDA, החלטת ריבית, פסיקת רגולציה. ציון גבוה = אירוע קרוב שהשוק מתמחר בחסר.
+2. **options_flow** (זרימת כסף חכם — אופציות): נתח זרימת אופציות חריגה (unusual options activity), יחס Put/Call, ונפח Open Interest. ציון גבוה = כסף חכם מהמר בגדול על כיוון מסוים.
+3. **insider_moves** (פעילות בעלי עניין): בדוק רכישות/מכירות של בכירים, Form 4, ושינויי החזקות דירקטורים. ציון גבוה = אינסיידרים קונים — אות חיובי חזק.
+4. **narrative_shift** (שינוי נרטיב סקטוריאלי): זהה האם הסיפור הציבורי סביב הסקטור/החברה עומד להשתנות. ציון גבוה = נרטיב שלילי שעומד להתהפך על סמך עובדות חדשות.
+""",
+        "position": """
+## 4 פרמטרי רנטגן — מארב אסטרטגי (position):
+
+1. **institutional_stealth** (איסוף מוסדי שקט): עקוב אחרי שינויי 13F, דיווחי חובה, ורכישות מוסדיות בנפחים קטנים שמתחת לרדאר. ציון גבוה = מוסדיים צוברים בשקט מבלי להזיז את המחיר.
+2. **supply_bottleneck** (צווארי בקבוק באספקה): זהה חוסרים מבניים בשרשרת האספקה — חומרי גלם, תשתיות, כוח אדם. ציון גבוה = צוואר בקבוק שיגרום לעליית מחירים בסקטור.
+3. **analyst_exhaustion** (מיצוי אנליסטים והיפוך): בדוק האם קונצנזוס האנליסטים הגיע לקיצון. כולם ממליצים מכירה? זהו דווקא אות קנייה קונטרריאני. ציון גבוה = מיצוי שלילי = הזדמנות היפוך.
+4. **macro_tailwind** (רוח גבית מאקרו-כלכלית): נתח מגמות מאקרו — ריבית, אינפלציה, מדיניות ממשלתית — שמעניקות רוח גבית נסתרת לסקטור. ציון גבוה = רוח גבית חזקה שהשוק טרם תמחר.
+""",
+        "investment": """
+## 4 פרמטרי רנטגן — נכסי ברזל (investment):
+
+1. **hostage_power** (תופס ערובה — כוח מיקוח): האם החברה חוליה קריטית בשרשרת האספקה? האם הלקוח יכול לעבור למתחרה? ציון גבוה = חפיר עמוק שנועל לקוחות.
+2. **debt_asymmetry** (אסימטריית חוב אינפלציונית): חברות עם חוב ארוך בריבית קבועה נמוכה שמרוויחות משחיקת ערך החוב באינפלציה. ציון גבוה = חוב שהופך מנטל לנכס.
+3. **esg_premium** (פרדוקס האתיקה — ESG): האם לחץ ESG וחרמות בעצם חוסם מתחרים חדשים ושומר על היצע נמוך? ציון גבוה = חפיר ESG הפוך שמגן על הרווחים.
+4. **capital_iq** (מנת משכל הקצאת הון): האם ההנהלה שמרנית שמכווצת מניות ומחלקת דיבידנדים, או בונה אימפריות מיותרות? ציון גבוה = הנהלה חכמה שמקצה הון ביעילות.
+""",
+    }
+
+    # ───── JSON SCHEMA (dynamic per column) ─────
+    # Schema is built dynamically in build_xray_prompt based on column keys
 
     def __init__(self):
         if not Config.GEMINI_API_KEY:
@@ -429,12 +416,22 @@ class ContrarianAIEngine:
 החזר JSON בלבד. ללא טקסט נוסף."""
 
     def build_xray_prompt(self, column_key: str, column_desc: str, deep_data: List[Dict]) -> str:
-        """Phase 4: Full X-Ray for 3 stocks in one column."""
+        """Phase 4: Full X-Ray for 3 stocks in one column, with column-specific parameters."""
         data_str = json.dumps(deep_data, ensure_ascii=False, default=str)
+
+        # Get column-specific xray definitions and keys
+        xray_defs = self.XRAY_DEFINITIONS_PER_COLUMN.get(column_key, "")
+        xray_keys = Config.XRAY_KEYS.get(column_key, [])
+
+        # Build JSON schema snippet for this column's xray keys
+        xray_schema_lines = []
+        for k in xray_keys:
+            xray_schema_lines.append(f'        "{k}": {{ "score": 0, "analysis": "ניתוח בעברית 2-3 משפטים" }}')
+        xray_schema_str = ",\n".join(xray_schema_lines)
 
         return f"""אתה אנליסט קונטרריאני. נתונים פיננסיים מפורטים של 3 מניות לזירת **{column_desc}**.
 
-{self.XRAY_DEFINITIONS}
+{xray_defs}
 
 ## הנתונים:
 {data_str}
@@ -446,12 +443,12 @@ class ContrarianAIEngine:
 1. **כל הטקסט בעברית בלבד** — תקציר, ניתוח, שמות סקטורים, תיאור החברה, דעת האנליסטים.
 2. **מפתחות JSON באנגלית בלבד** — בדיוק כפי שמופיע בסכמה.
 3. **ציון 1-100** לכל פרמטר — מבוסס על הפילוסופיה הקונטרריאנית (ציון גבוה = הזדמנות קונטרריאנית חזקה).
-4. **ניתוח 2-3 משפטים** לכל פרמטר — ספציפי, עם נתונים.
-5. **composite_score** — ממוצע משוקלל של 8 הפרמטרים.
+4. **ניתוח 2-3 משפטים** לכל פרמטר — ספציפי, עם נתונים מהמידע שסופק.
+5. **composite_score** — ממוצע משוקלל של 4 הפרמטרים.
 6. **company_description** — תיאור של 3-4 משפטים בעברית על מה החברה עושה.
-7. **analyst_ratings** — סיכום דעת האנליסטים בעברית, כולל consensus (קנייה/החזק/מכירה), summary (2-3 משפטים), bull_case (משפט אחד), bear_case (משפט אחד).
+7. **analyst_ratings** — סיכום דעת האנליסטים בעברית: consensus (קנייה/החזק/מכירה), summary (2-3 משפטים), bull_case (משפט אחד), bear_case (משפט אחד).
 
-## פורמט פלט — JSON בלבד:
+## פורמט פלט — JSON בלבד (4 פרמטרי xray ייחודיים לזירה זו):
 ```json
 {{
   "top_picks": [
@@ -470,20 +467,14 @@ class ContrarianAIEngine:
         "bear_case": "התזה השלילית — משפט אחד"
       }},
       "xray": {{
-        "earnings_guidance": {{ "score": 0, "analysis": "ניתוח בעברית" }},
-        "regulation": {{ "score": 0, "analysis": "..." }},
-        "esg_ethics": {{ "score": 0, "analysis": "..." }},
-        "analyst_peak": {{ "score": 0, "analysis": "..." }},
-        "boring_premium": {{ "score": 0, "analysis": "..." }},
-        "debt_asymmetry": {{ "score": 0, "analysis": "..." }},
-        "hostage_power": {{ "score": 0, "analysis": "..." }},
-        "capital_iq": {{ "score": 0, "analysis": "..." }}
+{xray_schema_str}
       }}
     }}
   ]
 }}
 ```
 
+חשוב מאוד: השתמש בדיוק ב-4 מפתחות ה-xray שלמעלה ({', '.join(xray_keys)}). אל תוסיף ואל תשנה מפתחות.
 החזר JSON בלבד. ללא טקסט נוסף."""
 
 
@@ -590,6 +581,7 @@ class OutputValidator:
             if len(picks) != 3:
                 errors.append(f"'{col}' has {len(picks)} picks (expected 3)")
 
+            col_xray_keys = Config.XRAY_KEYS.get(col, [])
             for i, pick in enumerate(picks):
                 if "ticker" not in pick:
                     errors.append(f"'{col}' pick {i}: missing ticker")
@@ -597,7 +589,7 @@ class OutputValidator:
                     errors.append(f"'{col}' pick {i}: missing xray")
                     continue
                 xray = pick["xray"]
-                for key in Config.XRAY_KEYS:
+                for key in col_xray_keys:
                     if key not in xray:
                         errors.append(f"'{col}' {pick.get('ticker','?')}: missing xray.{key}")
                     elif "score" not in xray[key]:
@@ -711,7 +703,8 @@ def main():
         else:
             log.error(f"  Failed to parse X-Ray for {col}")
             log.error(f"  Raw: {xray_response[:300]}")
-            # Fallback: create minimal entries
+            # Fallback: create minimal entries with column-specific xray keys
+            col_keys = Config.XRAY_KEYS.get(col, [])
             final_matrix[col] = {
                 "top_picks": [
                     {
@@ -721,7 +714,7 @@ def main():
                         "price": {"current": deep_data_map.get(t, {}).get("price", {}).get("current", 0)},
                         "composite_score": {"total": 0},
                         "thesis_summary": "ניתוח לא זמין — נסה שנית",
-                        "xray": {k: {"score": 0, "analysis": "לא זמין"} for k in Config.XRAY_KEYS},
+                        "xray": {k: {"score": 0, "analysis": "לא זמין"} for k in col_keys},
                     }
                     for t in tickers_for_col
                 ]
