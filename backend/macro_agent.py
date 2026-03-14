@@ -156,7 +156,7 @@ class Config:
     OUTPUT_FILE = Path(__file__).parent.parent / "docs" / "master_data.json"
     HISTORY_DIR = Path(__file__).parent.parent / "docs" / "history"
     CONFIG_FILE = Path(__file__).parent.parent / "docs" / "config.json"
-    MAX_RETRIES = 4
+    MAX_RETRIES = 5
     RETRY_DELAY = 5
     RATE_LIMIT_DELAY = 65  # seconds to wait on 429 rate limit
 
