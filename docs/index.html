@@ -127,8 +127,12 @@
         .card-sc.hi{background:rgba(45,212,168,.1);color:var(--green);border:1px solid rgba(45,212,168,.2)}
         .card-sc.mid{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
         .card-sc.lo{background:rgba(240,80,110,.1);color:var(--red);border:1px solid rgba(240,80,110,.2)}
+        .card-signal{display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;margin-top:6px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);color:var(--gold)}
         .card-thesis{font-size:11.5px;line-height:1.55;color:var(--txt2);border-top:1px solid var(--border);padding-top:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-        .empty-col{text-align:center;padding:40px 16px;color:var(--txt3);font-size:12px}
+        .empty-col{text-align:center;padding:40px 20px;color:var(--txt3);font-size:13px;line-height:1.8}
+        .empty-col .empty-icon{font-size:28px;margin-bottom:10px;opacity:.4}
+        .empty-col .empty-title{font-size:13px;font-weight:700;color:var(--txt2);margin-bottom:4px}
+        .empty-col .empty-sub{font-size:11px;color:var(--txt3)}
 
         /* ─── OVERLAY & DRAWER ─── */
         .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;z-index:100;opacity:0;transition:opacity .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
@@ -144,6 +148,7 @@
         .d-ticker{font-size:26px;font-weight:900;color:var(--gold);font-family:var(--mono);letter-spacing:2px}
         .d-meta{font-size:12px;color:var(--txt2);margin-top:3px}
         .d-thesis{font-size:13px;line-height:1.7;color:var(--txt);padding:12px 14px;background:rgba(212,175,55,.04);border-radius:var(--r);border-right:3px solid var(--gold);margin-top:12px}
+        .d-signal{display:inline-block;padding:5px 16px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:.5px;background:rgba(212,175,55,.1);border:1.5px solid rgba(212,175,55,.3);color:var(--gold);margin-bottom:14px}
         .d-score{font-size:11px;color:var(--txt3);margin-bottom:16px}
         .d-score strong{font-size:22px;color:var(--gold);font-family:var(--mono)}
 
@@ -478,14 +483,15 @@ function render(){
         col.innerHTML='<div class="col-head"><div class="col-title">'+COLS[colId].title+'</div><div class="col-desc">'+COLS[colId].desc+'</div><div class="col-count">'+picks.length+'/3</div></div>';
 
         if(!picks.length){
-            col.innerHTML+='<div class="empty-col">אין נתונים</div>';
+            col.innerHTML+='<div class="empty-col"><div class="empty-icon">—</div><div class="empty-title">אין כרגע הזדמנויות בתוחלת חיובית</div><div class="empty-sub">שמירה על נזילות. Cash is a position.</div></div>';
         }else{
             picks.forEach((stock,idx)=>{
                 const sc=(stock.composite_score||{}).total||0;
                 const cls=sc>=70?"hi":sc>=45?"mid":"lo";
+                const sig=stock.action_signal||"";
                 const card=document.createElement("div");card.className="card";
                 card.onclick=()=>openDrawer(colId,idx);
-                card.innerHTML='<div class="card-top"><div><div class="card-ticker">'+(stock.ticker||"?")+'</div><div class="card-co">'+(stock.company_name||"")+'</div></div><div class="card-sc '+cls+'">'+sc+'</div></div>'+(stock.thesis_summary?'<div class="card-thesis">'+stock.thesis_summary+'</div>':'');
+                card.innerHTML='<div class="card-top"><div><div class="card-ticker">'+(stock.ticker||"?")+'</div><div class="card-co">'+(stock.company_name||"")+'</div>'+(sig?'<div class="card-signal">'+sig+'</div>':'')+'</div><div class="card-sc '+cls+'">'+sc+'</div></div>'+(stock.thesis_summary?'<div class="card-thesis">'+stock.thesis_summary+'</div>':'');
                 col.appendChild(card);
             });
         }
@@ -502,7 +508,10 @@ function openDrawer(colKey,idx){
 
     let h='<div class="d-head"><div class="d-ticker">'+p.ticker+'</div><div class="d-meta">'+(p.company_name||"")+(p.sector?" // "+p.sector:"")+'</div>';
     if(p.thesis_summary)h+='<div class="d-thesis">'+p.thesis_summary+'</div>';
-    h+='</div><div class="d-score">ציון מרוכב: <strong>'+sc+'</strong> / 100</div>';
+    h+='</div>';
+    const sig=p.action_signal||"";
+    if(sig)h+='<div class="d-signal">'+sig+'</div><br>';
+    h+='<div class="d-score">ציון מרוכב: <strong>'+sc+'</strong> / 100</div>';
 
     // Company description
     if(p.company_description){h+='<div class="d-sec"><div class="d-sec-t">על החברה</div><div class="d-sec-b">'+p.company_description+'</div></div>'}

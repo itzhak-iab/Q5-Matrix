@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Q5 Command Matrix — macro_agent.py v2.0
+Q5 Command Matrix — macro_agent.py v2.1
 ========================================
 מערכת מודיעין פיננסית קונטרריאנית.
 
@@ -129,14 +129,15 @@ class StockPick(BaseModel):
     sector: str
     price: Price
     composite_score: CompositeScore
+    action_signal: str = Field(description="המלצת ביצוע קצרה: 2-3 מילים בעברית")
     thesis_summary: str
     company_description: str = ""
     analyst_ratings: Optional[AnalystRatings] = None
     xray: Dict[str, XRayParam]  # dynamic keys per column
 
 class ColumnResult(BaseModel):
-    """Result for a single column — exactly 3 picks."""
-    top_picks: List[StockPick] = Field(min_length=1, max_length=3)
+    """Result for a single column — 0 to 3 picks (0 if no actionable opportunities)."""
+    top_picks: List[StockPick] = Field(min_length=0, max_length=3)
 
 # Map column key → Pydantic XRay model class
 XRAY_MODELS: Dict[str, type] = {
@@ -459,11 +460,20 @@ class ContrarianAIEngine:
 
 החזר JSON בלבד. ללא טקסט נוסף."""
 
+    # ── Action signal examples per column ──
+    ACTION_SIGNAL_EXAMPLES = {
+        "day_trading": "קנייה אגרסיבית / שורט טקטי / כניסה בפריצה / לונג ספקולטיבי",
+        "swing": "כניסה לפני דוח / רכישה בתיקון / המתנה לאישור / סווינג לונג",
+        "position": "צבירה בחלקים / כניסה אסטרטגית / הגדלת פוזיציה / המתנה לתיקון",
+        "investment": "קנייה לטווח ארוך / בנייה הדרגתית / רכישת ליבה / תוספת לתיק",
+    }
+
     def build_xray_prompt(self, column_key: str, column_desc: str, deep_data: List[Dict]) -> str:
-        """Build a focused prompt for ONE column only (3 stocks, 4 xray params)."""
+        """Build a focused prompt for ONE column only (up to 3 stocks, 4 xray params)."""
         data_str = json.dumps(deep_data, ensure_ascii=False, default=str)
         xray_defs = self.XRAY_DEFINITIONS_PER_COLUMN.get(column_key, "")
         xray_keys = Config.XRAY_KEYS.get(column_key, [])
+        signal_examples = self.ACTION_SIGNAL_EXAMPLES.get(column_key, "קנייה / מכירה / המתנה")
 
         # Build JSON schema snippet
         xray_schema_lines = []
@@ -471,7 +481,17 @@ class ContrarianAIEngine:
             xray_schema_lines.append(f'        "{k}": {{ "score": 75, "analysis": "ניתוח בעברית 2-3 משפטים" }}')
         xray_schema_str = ",\n".join(xray_schema_lines)
 
-        return f"""אתה אנליסט קונטרריאני מומחה. להלן נתונים מפורטים של 3 מניות לזירת **{column_desc}**.
+        return f"""# תפקיד: מנהל קרן גידור — דסק מסחר קונטרריאני
+
+אתה מנהל קרן גידור קונטרריאנית עם סטנדרטים נוקשים של ניהול סיכונים.
+אתה אינך אנליסט מחקר שמספק סקירות כלליות — אתה כלי תומך-החלטות (Decision Support System) עבור דסק מסחר.
+
+## עיקרון ברזל — סינון קשיח:
+**אם למניה אין יחס סיכוי-סיכון (Risk/Reward) מצוין ואין לך המלצה מבצעית חדה לגביה — אל תכלול אותה בפלט כלל.**
+עדיף להחזיר מערך ריק של `top_picks` מאשר להמליץ על נכסים בינוניים.
+כל מניה שנכנסת למטריצה חייבת לייצג הזדמנות אסימטרית אמיתית — לא "מעניין לעקוב" אלא "יש פה כסף על השולחן".
+
+## הזירה: **{column_desc}**
 
 {xray_defs}
 
@@ -479,16 +499,19 @@ class ContrarianAIEngine:
 {data_str}
 
 ## המשימה:
-ייצר ניתוח X-Ray מלא עבור כל אחת מ-3 המניות.
+בחן את 3 המועמדים. לכל מניה שעוברת את מבחן ה-Risk/Reward שלך, ייצר ניתוח X-Ray מלא.
+**אם מניה לא עוברת את הסף — פשוט אל תכלול אותה.** מותר להחזיר 0, 1, 2, או 3 מניות.
 
 ### כללים קריטיים:
 1. **כל הטקסט בעברית בלבד** — תקציר, ניתוח, שמות סקטורים, תיאור חברה, דעת אנליסטים.
 2. **מפתחות JSON באנגלית בלבד** — בדיוק כפי שמופיע בסכמה למטה.
 3. **ציון 1-100** לכל פרמטר — ציון גבוה = הזדמנות קונטרריאנית חזקה.
-4. **ניתוח 2-3 משפטים** לכל פרמטר — ספציפי, עם נתונים.
+4. **ניתוח 2-3 משפטים** לכל פרמטר — ספציפי, עם נתונים מוחשיים. לא כלליות.
 5. **composite_score** — ממוצע משוקלל של 4 הפרמטרים.
-6. **company_description** — תיאור 3-4 משפטים בעברית.
-7. **analyst_ratings** — consensus, summary, bull_case, bear_case — הכל בעברית.
+6. **action_signal** — המלצת ביצוע קצרה וחדה ב-2-3 מילים בעברית. דוגמאות: {signal_examples}
+7. **thesis_summary** — חייב להתחיל בשורה התחתונה (Bottom Line): ההיגיון הכלכלי העומד בבסיס הפעולה. משפט ראשון = למה לפעול עכשיו. משפט שני-שלישי = הנתונים התומכים.
+8. **company_description** — תיאור 3-4 משפטים בעברית.
+9. **analyst_ratings** — consensus, summary, bull_case, bear_case — הכל בעברית.
 
 ## פורמט פלט — JSON בלבד:
 ```json
@@ -500,7 +523,8 @@ class ContrarianAIEngine:
       "sector": "סקטור בעברית",
       "price": {{ "current": 0.0 }},
       "composite_score": {{ "total": 75 }},
-      "thesis_summary": "תקציר קונטרריאני 2-3 משפטים בעברית",
+      "action_signal": "קנייה אגרסיבית",
+      "thesis_summary": "[שורה תחתונה: למה עכשיו] — [ניתוח תומך 2-3 משפטים בעברית]",
       "company_description": "תיאור החברה — 3-4 משפטים בעברית",
       "analyst_ratings": {{
         "consensus": "קנייה/החזק/מכירה",
@@ -515,6 +539,8 @@ class ContrarianAIEngine:
   ]
 }}
 ```
+
+**אם אין אף מניה שעוברת את הסף, החזר:** `{{ "top_picks": [] }}`
 
 חשוב מאוד: השתמש בדיוק ב-4 מפתחות ה-xray: {', '.join(xray_keys)}. אל תוסיף ואל תשנה מפתחות.
 החזר JSON בלבד. ללא טקסט נוסף."""
@@ -650,18 +676,24 @@ class OutputValidator:
             return False, errors
 
         matrix = data["matrix"]
+        total_picks = 0
         for col in self.COLUMNS:
             if col not in matrix:
                 errors.append(f"Missing column '{col}'")
                 continue
             picks = matrix[col].get("top_picks", [])
-            if len(picks) != 3:
-                errors.append(f"'{col}' has {len(picks)} picks (expected 3)")
+            total_picks += len(picks)
+            if len(picks) > 3:
+                errors.append(f"'{col}' has {len(picks)} picks (max 3)")
+            if len(picks) == 0:
+                log.info(f"  '{col}': no actionable opportunities (strict filtering)")
 
             col_xray_keys = Config.XRAY_KEYS.get(col, [])
             for i, pick in enumerate(picks):
                 if "ticker" not in pick:
                     errors.append(f"'{col}' pick {i}: missing ticker")
+                if "action_signal" not in pick:
+                    errors.append(f"'{col}' {pick.get('ticker','?')}: missing action_signal")
                 if "xray" not in pick:
                     errors.append(f"'{col}' pick {i}: missing xray")
                     continue
@@ -672,6 +704,7 @@ class OutputValidator:
                     elif "score" not in xray[key]:
                         errors.append(f"'{col}' {pick.get('ticker','?')}: xray.{key} missing score")
 
+        log.info(f"  Total picks across all columns: {total_picks}")
         return len(errors) == 0, errors
 
 
@@ -704,7 +737,7 @@ def get_market_status() -> str:
 # ==============================================================
 def main():
     log.info("=" * 60)
-    log.info("Q5 COMMAND MATRIX v2.0 — macro_agent.py")
+    log.info("Q5 SIGNAL MATRIX v2.1 — macro_agent.py")
     log.info("=" * 60)
     start_time = time.time()
 
@@ -793,6 +826,7 @@ def main():
                         "sector": deep_data_map.get(t, {}).get("sector", ""),
                         "price": {"current": deep_data_map.get(t, {}).get("price", {}).get("current", 0)},
                         "composite_score": {"total": 0},
+                        "action_signal": "ניתוח נכשל",
                         "thesis_summary": "ניתוח לא זמין — נסה שנית",
                         "company_description": "",
                         "analyst_ratings": {"consensus": "לא זמין", "summary": "", "bull_case": "", "bear_case": ""},
@@ -811,7 +845,7 @@ def main():
         "meta": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "market_status": get_market_status(),
-            "pipeline_version": "2.0",
+            "pipeline_version": "2.1",
             "radar_stats": {
                 "total_scanned": len(tickers),
                 "with_data": len(light_data),
@@ -858,7 +892,7 @@ def main():
     log.info(f"Saved to {Config.OUTPUT_FILE}")
     log.info(f"Total time: {elapsed:.1f}s")
     log.info("=" * 60)
-    log.info("Q5 MATRIX v2.0 COMPLETE")
+    log.info("Q5 SIGNAL v2.1 COMPLETE")
     log.info("=" * 60)
 
 
