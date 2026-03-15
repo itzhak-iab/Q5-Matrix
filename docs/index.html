@@ -200,6 +200,9 @@
         .m-err{color:var(--red);font-size:10px;margin-top:8px;min-height:14px}
 
         .footer{text-align:center;padding:6px;font-size:9px;color:var(--txt3);border-top:1px solid var(--border);flex-shrink:0;letter-spacing:1px;display:none;padding-bottom:calc(6px + var(--safe-b))}
+        .col-pick{padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--txt3);transition:.2s}
+        .col-pick.active{background:rgba(212,175,55,.12);border-color:var(--gold);color:var(--gold)}
+        .col-pick:hover{border-color:var(--gold-dim)}
 
         /* ══════ DESKTOP ══════ */
         @media(min-width:900px){
@@ -274,19 +277,19 @@
     <div class="meth" id="meth">
         <div class="meth-title">פילוסופיית ניתוח קונטרריאנית</div>
         <div class="meth-grid">
-            <div class="meth-card"><h4>יירוט טקטי</h4><p>ארביטראז' סמנטי — ניצול פערי מחיר מרעש תקשורתי. פאניקה, מלכודות שורט, אנומליות נפח.</p></div>
-            <div class="meth-card"><h4>תקיפת קטליזטור</h4><p>רכיבה על אירועי קיצון — מניות לפני קטליזטור שהשוק מתמחר בחסר.</p></div>
-            <div class="meth-card"><h4>מארב אסטרטגי</h4><p>מעקב כסף מוסדי — הצטברות שקטה, חוסרים באספקה, מיצוי אנליסטים.</p></div>
-            <div class="meth-card"><h4>נכסי ברזל</h4><p>חפיר כלכלי בלתי ניתן לשכפול — כוח מיקוח, אסימטריית חוב, ESG הפוך.</p></div>
+            <div class="meth-card"><h4>מסחר יומי</h4><p>Intraday בלבד — כניסה ויציאה באותו יום מסחר. פאניקה סמנטית, מלכודות שורט, אנומליות נפח.</p></div>
+            <div class="meth-card"><h4>סווינג</h4><p>ימים עד שבועות — רכיבה על קטליזטור שהשוק מתמחר בחסר. אופציות, אינסיידרים, נרטיב.</p></div>
+            <div class="meth-card"><h4>השקעה קצר-בינוני</h4><p>שבועות עד חודשים — מעקב כסף מוסדי, הצטברות שקטה, צווארי בקבוק באספקה.</p></div>
+            <div class="meth-card"><h4>השקעה לטווח ארוך</h4><p>חודשים עד שנים — חפיר כלכלי בלתי ניתן לשכפול, כוח מיקוח, אסימטריית חוב.</p></div>
         </div>
     </div>
 
     <!-- Mobile Tab Nav -->
     <div class="tabs" id="tabs">
-        <button class="tab active" data-col="day_trading" onclick="switchTab('day_trading')">יירוט טקטי</button>
-        <button class="tab" data-col="swing" onclick="switchTab('swing')">תקיפת קטליזטור</button>
-        <button class="tab" data-col="position" onclick="switchTab('position')">מארב אסטרטגי</button>
-        <button class="tab" data-col="investment" onclick="switchTab('investment')">נכסי ברזל</button>
+        <button class="tab active" data-col="day_trading" onclick="switchTab('day_trading')">מסחר יומי</button>
+        <button class="tab" data-col="swing" onclick="switchTab('swing')">סווינג</button>
+        <button class="tab" data-col="position" onclick="switchTab('position')">קצר-בינוני</button>
+        <button class="tab" data-col="investment" onclick="switchTab('investment')">טווח ארוך</button>
     </div>
 
     <!-- Main Content -->
@@ -311,7 +314,15 @@
 <div id="run-modal" class="modal">
     <div class="modal-box">
         <h3>הרצת סריקה חדשה</h3>
-        <p>הסריקה תיקח כ-4 דקות. הזן קוד לאישור:</p>
+        <p>בחר קטגוריה או סרוק הכל:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:14px">
+            <button class="col-pick active" data-val="" onclick="pickCol(this)">הכל</button>
+            <button class="col-pick" data-val="day_trading" onclick="pickCol(this)">מסחר יומי</button>
+            <button class="col-pick" data-val="swing" onclick="pickCol(this)">סווינג</button>
+            <button class="col-pick" data-val="position" onclick="pickCol(this)">קצר-בינוני</button>
+            <button class="col-pick" data-val="investment" onclick="pickCol(this)">טווח ארוך</button>
+        </div>
+        <p style="font-size:10px;color:var(--txt3);margin-bottom:12px" id="m-time">~4 דקות. הזן קוד לאישור:</p>
         <div class="m-pin" id="m-pin">
             <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
             <input type="text" maxlength="1" inputmode="numeric" autocomplete="off">
@@ -385,10 +396,10 @@ function logout(){sessionStorage.removeItem("q5s");location.reload()}
    CONFIG
    ═══════════════════════════════════════ */
 const COLS={
-    day_trading:{title:"יירוט טקטי",desc:"ארביטראז' סמנטי — ניצול פאניקה (0-24h)",cls:"col--day"},
-    swing:{title:"תקיפת קטליזטור",desc:"Event-Driven — תמחור חסר (ימים-שבועות)",cls:"col--swing"},
-    position:{title:"מארב אסטרטגי",desc:"צווארי בקבוק — כסף מוסדי (שבועות-חודשים)",cls:"col--position"},
-    investment:{title:"נכסי ברזל",desc:"חפיר כלכלי — שליטת עומק (שנים)",cls:"col--investment"},
+    day_trading:{title:"מסחר יומי",desc:"Intraday בלבד — כניסה ויציאה באותו יום",cls:"col--day"},
+    swing:{title:"סווינג",desc:"ימים עד שבועות — רכיבה על קטליזטור",cls:"col--swing"},
+    position:{title:"טווח קצר-בינוני",desc:"שבועות עד חודשים — כסף חכם ואיתותים מוסדיים",cls:"col--position"},
+    investment:{title:"טווח ארוך",desc:"חודשים עד שנים — חפיר כלכלי ושליטת עומק",cls:"col--investment"},
 };
 const XR_DICT={
     semantic_panic:"מדד הפאניקה הסמנטית",short_trap:"מלכודת שורטיסטים",volume_abnormality:"אנומליית מחזורים",float_choke:"חנק היצע צף",
@@ -397,10 +408,10 @@ const XR_DICT={
     hostage_power:"תופס ערובה",debt_asymmetry:"אסימטריית חוב",esg_premium:"פרדוקס ESG",capital_iq:"מנת משכל הון",
 };
 const COL_METH={
-    day_trading:"זיהוי פערי מחיר מרעש תקשורתי. פאניקה סמנטית, מלכודות שורט, אנומליות נפח, חנק היצע צף.",
-    swing:"מניות לפני קטליזטור שהשוק מתמחר בחסר. אופק אירועים, זרימת אופציות, אינסיידרים, שינוי נרטיב.",
-    position:"כניסה שקטה של כסף מוסדי. הצטברות, צווארי בקבוק, מיצוי אנליסטים, רוח גבית מאקרו.",
-    investment:"חפיר בלתי ניתן לשכפול. כוח מיקוח, אסימטריית חוב, פרדוקס ESG, הקצאת הון חכמה.",
+    day_trading:"מסחר תוך-יומי בלבד — כניסה ויציאה באותו יום. פאניקה סמנטית, מלכודות שורט, אנומליות נפח, חנק היצע צף.",
+    swing:"מניות לפני קטליזטור שהשוק מתמחר בחסר. אופק: ימים עד שבועות. אירועים, אופציות, אינסיידרים, נרטיב.",
+    position:"כניסה שקטה של כסף מוסדי. אופק: שבועות-חודשים. הצטברות, צווארי בקבוק, מיצוי אנליסטים, מאקרו.",
+    investment:"חפיר בלתי ניתן לשכפול. אופק: חודשים-שנים. כוח מיקוח, אסימטריית חוב, ESG, הקצאת הון.",
 };
 
 let DATA=null,activeTab="day_trading",viewHist=false;
@@ -553,7 +564,16 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();close
 /* ═══════════════════════════════════════
    RUN WORKFLOW
    ═══════════════════════════════════════ */
-function showRunModal(){document.getElementById("run-modal").classList.add("on");document.getElementById("m-err").textContent="";[...document.querySelectorAll("#m-pin input")].forEach(i=>i.value="");initPins("m-pin")}
+let selectedCol=""; // "" = all columns
+function pickCol(el){
+    document.querySelectorAll(".col-pick").forEach(b=>b.classList.remove("active"));
+    el.classList.add("active");
+    selectedCol=el.dataset.val;
+    const t=document.getElementById("m-time");
+    t.textContent=selectedCol?("~2 דקות. הזן קוד לאישור:"):("~4 דקות. הזן קוד לאישור:");
+}
+
+function showRunModal(){document.getElementById("run-modal").classList.add("on");document.getElementById("m-err").textContent="";selectedCol="";document.querySelectorAll(".col-pick").forEach(b=>b.classList.toggle("active",!b.dataset.val));[...document.querySelectorAll("#m-pin input")].forEach(i=>i.value="");initPins("m-pin")}
 function closeRunModal(){document.getElementById("run-modal").classList.remove("on")}
 
 async function confirmRun(){
@@ -562,22 +582,26 @@ async function confirmRun(){
     if(pin.length!==6){document.getElementById("m-err").textContent="הזן 6 ספרות";return}
     const h=await sha256(pin);
     if(h!==HASH){document.getElementById("m-err").textContent="קוד שגוי";ins.forEach(i=>i.value="");ins[0].focus();return}
-    closeRunModal();triggerWorkflow();
+    closeRunModal();triggerWorkflow(selectedCol);
 }
 
-async function triggerWorkflow(){
+async function triggerWorkflow(column){
     const btn=document.getElementById("run-btn");
+    const colLabel=column?COLS[column]?.title:"הכל";
     btn.textContent="SCANNING...";btn.classList.add("running");btn.disabled=true;
     try{
         const _e="d1NlUDUwMmdVMWptVkk5OHV2bFpOSmJjMHZkRnRteDJ2bDREX3BoZw==";
         const _d=atob(_e).split("").reverse().join("");
+        const body={ref:"main"};
+        if(column)body.inputs={column:column};
         const resp=await fetch("https://api.github.com/repos/itzhak-iab/Q5-Matrix/actions/workflows/daily_matrix.yml/dispatches",{
-            method:"POST",headers:{"Authorization":"token "+_d,"Accept":"application/vnd.github+json"},body:JSON.stringify({ref:"main"})
+            method:"POST",headers:{"Authorization":"token "+_d,"Accept":"application/vnd.github+json"},body:JSON.stringify(body)
         });
         if(resp.status===204||resp.ok){
-            btn.textContent="RUNNING ~4MIN";
+            const wait=column?3:5;
+            btn.textContent="RUNNING ~"+(column?"2":"4")+"MIN";
             btn.classList.remove("running");
-            setTimeout(()=>{btn.textContent="REFRESHING...";location.reload()},5*60*1000);
+            setTimeout(()=>{btn.textContent="REFRESHING...";location.reload()},wait*60*1000);
         }else throw new Error("Status "+resp.status);
     }catch(e){btn.textContent="ERROR";btn.classList.remove("running");btn.disabled=false;console.error("Trigger:",e)}
 }

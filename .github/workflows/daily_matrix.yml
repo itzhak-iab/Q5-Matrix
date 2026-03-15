@@ -3,6 +3,12 @@ name: Q5 Matrix — Daily Contrarian Analysis
 on:
   # Manual trigger from GitHub UI or API (the "Run Analysis" button)
   workflow_dispatch:
+    inputs:
+      column:
+        description: 'Run specific column (leave empty for all). Options: day_trading, swing, position, investment'
+        required: false
+        default: ''
+        type: string
 
   # Automatic: Every day at 12:00 UTC = 07:00 ET (2 hours before market open)
   schedule:
@@ -38,7 +44,15 @@ jobs:
       - name: Run Matrix Backend
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python backend/macro_agent.py
+        run: |
+          COLUMN="${{ github.event.inputs.column }}"
+          if [ -n "$COLUMN" ]; then
+            echo "Running single column: $COLUMN"
+            python backend/macro_agent.py --column "$COLUMN"
+          else
+            echo "Running all columns"
+            python backend/macro_agent.py
+          fi
 
       # 5. Commit the updated JSON to the repo (so GitHub Pages serves fresh data)
       - name: Commit updated data
@@ -46,6 +60,11 @@ jobs:
           git config user.name "Q5-Matrix Bot"
           git config user.email "bot@q5-matrix.local"
           git add docs/master_data.json docs/history/
-          git diff --staged --quiet || git commit -m "Update matrix data — $(date -u '+%Y-%m-%d %H:%M UTC')"
+          COLUMN="${{ github.event.inputs.column }}"
+          MSG="Update matrix data"
+          if [ -n "$COLUMN" ]; then
+            MSG="Update matrix — $COLUMN only"
+          fi
+          git diff --staged --quiet || git commit -m "$MSG — $(date -u '+%Y-%m-%d %H:%M UTC')"
           git pull --rebase origin main || true
           git push

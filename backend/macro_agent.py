@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Q5 Command Matrix — macro_agent.py v2.1
+Q5 Command Matrix — macro_agent.py v2.2
 ========================================
 מערכת מודיעין פיננסית קונטרריאנית.
 
@@ -12,6 +12,11 @@ Pipeline:
   Phase 5: VALIDATE & SAVE — master_data.json + history
 
 כל הפלט בעברית. מפתחות JSON באנגלית.
+
+Usage:
+  python macro_agent.py                  # Run all 4 columns
+  python macro_agent.py --column swing   # Run only the swing column
+  python macro_agent.py --column day_trading,investment  # Run specific columns
 """
 
 import os
@@ -19,6 +24,7 @@ import sys
 import json
 import time
 import logging
+import argparse
 import traceback
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -340,33 +346,34 @@ class ContrarianAIEngine:
     """Interfaces with Gemini. Phase 2 = 1 triage call, Phase 4 = 4 separate X-Ray calls."""
 
     STRATEGY_DEFINITIONS = """
-## 4 זירות הפעולה:
+## 4 אופקי השקעה:
 
-### 1. day_trading — יירוט טקטי: ארביטראז' סמנטי
-זיהוי חברה שחווה פער מחיר שלילי (Gap Down) כתוצאה מ"רעש" ולא מפגיעה פונדמנטלית. רווח מהיר מפאניקה.
+### 1. day_trading — מסחר יומי (Intraday בלבד)
+מסחר שנפתח ונסגר באותו יום מסחר. **אין להחזיק פוזיציה פתוחה בסוף יום המסחר.** מתמקד בפערי מחיר (Gap Down/Up) כתוצאה מרעש תקשורתי, Short Squeeze תוך-יומי, אנומליות נפח, ותנודתיות גבוהה בשעות הפתיחה. רווח מהיר — כניסה ויציאה באותו יום.
 
-### 2. swing — תקיפת קטליזטור: רכיבה על אירוע
-זיהוי חברה המתקרבת לאירוע מכונן שהשוק מתמחר בחסר.
+### 2. swing — סווינג (ימים עד שבועות)
+זיהוי חברה המתקרבת לאירוע מכונן שהשוק מתמחר בחסר. החזקה טיפוסית: מספר ימים עד שבועות, תלוי בקטליזטור.
 
-### 3. position — מארב אסטרטגי: צווארי בקבוק וכסף חכם
-זיהוי סקטור שבו מתחיל להיכנס "כסף חכם" עקב חוסר מהותי בתשתית או חומר גלם.
+### 3. position — השקעה לטווח קצר-בינוני (שבועות עד חודשים)
+זיהוי סקטור שבו מתחיל להיכנס "כסף חכם" עקב חוסר מהותי בתשתית או חומר גלם. אופק: שבועות עד מספר חודשים.
 
-### 4. investment — נכסי ברזל: מונופול וחפיר פיזי
-חברה בעלת חפיר כלכלי שלא ניתן לשכפול, מאזן חסין אינפלציה, ויכולת ייצור תזרים גם במיתון.
+### 4. investment — השקעה לטווח ארוך (חודשים עד שנים)
+חברה בעלת חפיר כלכלי שלא ניתן לשכפול, מאזן חסין אינפלציה, ויכולת ייצור תזרים גם במיתון. אופק: חודשים עד שנים.
 """
 
     # ── Per-column X-Ray definitions with detailed instructions ──
     XRAY_DEFINITIONS_PER_COLUMN = {
         "day_trading": """
-## 4 פרמטרי רנטגן — יירוט טקטי:
+## 4 פרמטרי רנטגן — מסחר יומי (Intraday בלבד):
+**חשוב: כל ההמלצות חייבות להתאים למסחר תוך-יומי בלבד. הפוזיציה נפתחת ונסגרת באותו יום. אין החזקה בין לילה (overnight).**
 
-1. **semantic_panic** (מדד הפאניקה הסמנטית): מדוד את הפער בין הסנטימנט השלילי ברשתות/כותרות לבין הנזק הפונדמנטלי בפועל. ציון גבוה = פאניקה רבה מתוך רעש בלבד, ללא פגיעה עסקית אמיתית.
-2. **short_trap** (מלכודת שורטיסטים): בדוק את יחס השורט, עלות ההשאלה, וימים לכיסוי. ציון גבוה = שורטיסטים חשופים לסקוויז קרוב.
-3. **volume_abnormality** (אנומליית מחזורים): השווה נפח מסחר נוכחי לממוצע 20 יום. ציון גבוה = נפח חריג שמצביע על פעילות לא-אורגנית.
-4. **float_choke** (חנק היצע צף): בדוק את ה-Float מול ההחזקות המוסדיות. ציון גבוה = היצע צף נמוך שמגביר תנודתיות.
+1. **semantic_panic** (מדד הפאניקה הסמנטית): מדוד את הפער בין הסנטימנט השלילי ברשתות/כותרות לבין הנזק הפונדמנטלי בפועל. ציון גבוה = פאניקה רבה מתוך רעש בלבד — הזדמנות לקנייה תוך-יומית.
+2. **short_trap** (מלכודת שורטיסטים): בדוק את יחס השורט, עלות ההשאלה, וימים לכיסוי. ציון גבוה = שורטיסטים חשופים לסקוויז תוך-יומי.
+3. **volume_abnormality** (אנומליית מחזורים): השווה נפח מסחר נוכחי לממוצע 20 יום. ציון גבוה = נפח חריג בשעות הפתיחה שמצביע על תנודתיות תוך-יומית גבוהה.
+4. **float_choke** (חנק היצע צף): בדוק את ה-Float מול ההחזקות המוסדיות. ציון גבוה = היצע צף נמוך שמגביר תנודתיות תוך-יומית ומאפשר תנועות חדות.
 """,
         "swing": """
-## 4 פרמטרי רנטגן — תקיפת קטליזטור:
+## 4 פרמטרי רנטגן — סווינג (ימים עד שבועות):
 
 1. **event_horizon** (אופק האירוע): זהה את הקטליזטור הקרוב — דו"ח, אישור FDA, החלטת ריבית. ציון גבוה = אירוע קרוב שהשוק מתמחר בחסר.
 2. **options_flow** (זרימת כסף חכם — אופציות): נתח זרימת אופציות חריגה, יחס Put/Call, ו-Open Interest. ציון גבוה = כסף חכם מהמר בגדול.
@@ -374,7 +381,7 @@ class ContrarianAIEngine:
 4. **narrative_shift** (שינוי נרטיב סקטוריאלי): זהה האם הסיפור הציבורי עומד להשתנות. ציון גבוה = נרטיב שלילי שעומד להתהפך.
 """,
         "position": """
-## 4 פרמטרי רנטגן — מארב אסטרטגי:
+## 4 פרמטרי רנטגן — השקעה לטווח קצר-בינוני (שבועות עד חודשים):
 
 1. **institutional_stealth** (איסוף מוסדי שקט): עקוב אחרי שינויי 13F ורכישות מוסדיות שמתחת לרדאר. ציון גבוה = מוסדיים צוברים בשקט.
 2. **supply_bottleneck** (צווארי בקבוק באספקה): זהה חוסרים מבניים בשרשרת האספקה. ציון גבוה = צוואר בקבוק שיגרום לעליית מחירים.
@@ -382,7 +389,7 @@ class ContrarianAIEngine:
 4. **macro_tailwind** (רוח גבית מאקרו): נתח מגמות ריבית, אינפלציה, מדיניות ממשלתית שמעניקות רוח גבית נסתרת. ציון גבוה = רוח גבית שהשוק טרם תמחר.
 """,
         "investment": """
-## 4 פרמטרי רנטגן — נכסי ברזל:
+## 4 פרמטרי רנטגן — השקעה לטווח ארוך (חודשים עד שנים):
 
 1. **hostage_power** (תופס ערובה — כוח מיקוח): האם החברה חוליה קריטית בשרשרת האספקה? ציון גבוה = חפיר עמוק שנועל לקוחות.
 2. **debt_asymmetry** (אסימטריית חוב אינפלציונית): חוב ארוך בריבית קבועה נמוכה שנשחק באינפלציה. ציון גבוה = חוב שהופך מנטל לנכס.
@@ -462,7 +469,7 @@ class ContrarianAIEngine:
 
     # ── Action signal examples per column ──
     ACTION_SIGNAL_EXAMPLES = {
-        "day_trading": "קנייה אגרסיבית / שורט טקטי / כניסה בפריצה / לונג ספקולטיבי",
+        "day_trading": "לונג תוך-יומי / שורט תוך-יומי / סקאלפ בפתיחה / כניסה-יציאה מהירה",
         "swing": "כניסה לפני דוח / רכישה בתיקון / המתנה לאישור / סווינג לונג",
         "position": "צבירה בחלקים / כניסה אסטרטגית / הגדלת פוזיציה / המתנה לתיקון",
         "investment": "קנייה לטווח ארוך / בנייה הדרגתית / רכישת ליבה / תוספת לתיק",
@@ -735,9 +742,38 @@ def get_market_status() -> str:
 # ==============================================================
 # MAIN PIPELINE
 # ==============================================================
+def parse_args():
+    """Parse CLI arguments for per-column execution."""
+    parser = argparse.ArgumentParser(description="Q5 Signal Matrix — Contrarian Analysis Engine")
+    parser.add_argument(
+        "--column", "-c",
+        type=str,
+        default="",
+        help="Run specific column(s) only. Comma-separated. Options: day_trading, swing, position, investment"
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+
+    # Determine which columns to run
+    all_columns = OutputValidator.COLUMNS
+    if args.column:
+        requested = [c.strip() for c in args.column.split(",")]
+        run_columns = [c for c in requested if c in all_columns]
+        if not run_columns:
+            log.error(f"Invalid column(s): {args.column}. Valid: {', '.join(all_columns)}")
+            sys.exit(1)
+        partial_run = True
+    else:
+        run_columns = list(all_columns)
+        partial_run = False
+
     log.info("=" * 60)
-    log.info("Q5 SIGNAL MATRIX v2.1 — macro_agent.py")
+    log.info("Q5 SIGNAL MATRIX v2.2 — macro_agent.py")
+    if partial_run:
+        log.info(f"PARTIAL RUN — columns: {', '.join(run_columns)}")
     log.info("=" * 60)
     start_time = time.time()
 
@@ -767,7 +803,7 @@ def main():
 
     selected_tickers = set()
     column_tickers: Dict[str, List[str]] = {}
-    for col in OutputValidator.COLUMNS:
+    for col in run_columns:
         picks = triage_result.get(col, [])
         column_tickers[col] = picks[:3]
         for t in picks[:3]:
@@ -785,19 +821,29 @@ def main():
         deep_data_map[ticker] = deep_fetcher.fetch_deep(ticker)
         time.sleep(0.3)
 
-    # ─── Phase 4: AI X-RAY — 4 SEPARATE Gemini calls ───
-    log.info("PHASE 4: AI X-RAY — 4 separate Gemini calls (one per column)")
+    # ─── Phase 4: AI X-RAY — Gemini calls (one per column) ───
+    log.info(f"PHASE 4: AI X-RAY — {len(run_columns)} Gemini call(s)")
 
     column_descriptions = {
-        "day_trading": "יירוט טקטי — ארביטראז' סמנטי",
-        "swing": "תקיפת קטליזטור — רכיבה על אירוע",
-        "position": "מארב אסטרטגי — צווארי בקבוק וכסף חכם",
-        "investment": "נכסי ברזל — מונופול וחפיר פיזי",
+        "day_trading": "מסחר יומי — Intraday בלבד (כניסה ויציאה באותו יום מסחר)",
+        "swing": "סווינג — ימים עד שבועות",
+        "position": "השקעה לטווח קצר-בינוני — שבועות עד חודשים",
+        "investment": "השקעה לטווח ארוך — חודשים עד שנים",
     }
 
     final_matrix = {}
 
-    for col in OutputValidator.COLUMNS:
+    # For partial runs, load existing data to merge
+    existing_data = None
+    if partial_run and Config.OUTPUT_FILE.exists():
+        try:
+            with open(Config.OUTPUT_FILE, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+            log.info(f"Loaded existing data for merge (partial run)")
+        except Exception as e:
+            log.warning(f"Could not load existing data: {e}")
+
+    for col in run_columns:
         log.info(f"  ── Gemini call for: {col} ──")
         tickers_for_col = column_tickers.get(col, [])
         deep_for_col = [deep_data_map.get(t, {"ticker": t}) for t in tickers_for_col]
@@ -838,6 +884,13 @@ def main():
 
         time.sleep(1)  # Rate limiting between columns
 
+    # ─── Merge with existing data for partial runs ───
+    if partial_run and existing_data and "matrix" in existing_data:
+        merged_matrix = existing_data["matrix"].copy()
+        merged_matrix.update(final_matrix)
+        final_matrix = merged_matrix
+        log.info(f"Merged {len(run_columns)} updated column(s) with existing data")
+
     # ─── Phase 5: VALIDATE & SAVE ───
     log.info("PHASE 5: VALIDATE & SAVE")
 
@@ -845,12 +898,14 @@ def main():
         "meta": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "market_status": get_market_status(),
-            "pipeline_version": "2.1",
+            "pipeline_version": "2.2",
             "radar_stats": {
                 "total_scanned": len(tickers),
                 "with_data": len(light_data),
                 "selected_for_analysis": len(selected_tickers),
             },
+            "run_mode": "partial" if partial_run else "full",
+            "columns_updated": run_columns,
         },
         "matrix": final_matrix,
     }
@@ -863,7 +918,7 @@ def main():
         for err in errors:
             log.warning(f"  - {err}")
     else:
-        log.info("Validation PASSED — all 4 columns × 3 picks × 4 X-Ray params each")
+        log.info("Validation PASSED")
 
     # Save
     Config.OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -892,7 +947,7 @@ def main():
     log.info(f"Saved to {Config.OUTPUT_FILE}")
     log.info(f"Total time: {elapsed:.1f}s")
     log.info("=" * 60)
-    log.info("Q5 SIGNAL v2.1 COMPLETE")
+    log.info("Q5 SIGNAL v2.2 COMPLETE")
     log.info("=" * 60)
 
 
