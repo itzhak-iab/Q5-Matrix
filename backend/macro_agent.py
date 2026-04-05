@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CATALYST — macro_agent.py v3.0
+CATALYST — macro_agent.py v3.1
 ================================
 מערכת מודיעין קטליסטית למניות.
 סורקת רשימה קבועה של טיקרים ומנתחת:
@@ -9,8 +9,10 @@ CATALYST — macro_agent.py v3.0
   3. שאלות ממוקדות שמשקפות עלייה/ירידה צפויה
 
 Usage:
-  python macro_agent.py                    # Run all tickers
-  python macro_agent.py --ticker ASML,PLTR # Run specific tickers
+  python macro_agent.py                    # Run all tickers (short analysis)
+  python macro_agent.py --ticker ASML,PLTR # Run specific tickers (short analysis)
+  python macro_agent.py --analysis-type long # Run all tickers (long analysis)
+  python macro_agent.py --ticker ASML --analysis-type long # Run specific tickers (long analysis)
 """
 
 import os
@@ -80,6 +82,9 @@ WATCHLIST = [
     "LNG", "SOXX", "QQQ", "SPY", "MU",
 ]
 
+# Israeli tickers (IL market)
+ISRAELI_TICKERS = ["TEVA", "BAL", "DIS.IL", "CMOT", "ICL"]
+
 
 # ==============================================================
 # PYDANTIC MODELS
@@ -110,6 +115,9 @@ class StockAnalysis(BaseModel):
     bottom_line: str = Field(description="שורה תחתונה — משפט אחד חד")
     catalysts: List[CatalystItem] = Field(min_length=1, max_length=5)
     questions: List[QuestionAnswer] = Field(min_length=2, max_length=3)
+    buzz_alert: str = Field(description="אזהרה בנוגע להנעת מניה ושיתוכים אפשריים")
+    analysis_type: str = Field(description="short / long")
+    market: str = Field(default="US", description="US / IL")
 
 class BatchResult(BaseModel):
     """Result for a batch of stocks."""
@@ -281,25 +289,106 @@ class CatalystEngine:
                 else:
                     raise
 
-    def build_analysis_prompt(self, stocks_data: List[Dict]) -> str:
+    def build_analysis_prompt(self, stocks_data: List[Dict], analysis_type: str = "short") -> str:
         data_str = json.dumps(stocks_data, ensure_ascii=False, default=str)
 
-        return f"""# תפקיד: אנליסט מודיעין שוק ההון — מערכת CATALYST
+        # ── Determine if any tickers are ETFs ──
+        etf_tickers = {"SMH", "SOXX", "QQQ", "SPY", "URNM"}
+        has_etfs = any(s.get("ticker", "") in etf_tickers for s in stocks_data)
 
-אתה אנליסט מודיעין שוק ההון. התפקיד שלך: לזהות **קטליזטורים** — אירועים, נתונים, או שינויים שצפויים להזיז מניות בטווח הקרוב.
+        etf_addendum = ""
+        if has_etfs:
+            etf_addendum = """
+## שאלות ייעודיות ל-ETF/קרנות סל (SMH, SOXX, QQQ, SPY, URNM):
+עבור מדדים וקרנות סל, בדוק בנוסף:
+- **ריכוזיות המדד**: מהו המשקל של 10 המניות הגדולות ביותר? האם זה פיזור אמיתי או שהמשקיע קונה בעצם 3 חברות ענק?
+- **איכות ה"זנב"**: האם הקרן מכילה חברות כושלות רק כדי לייצר פיזור מלאכותי?
+- **דמי ניהול ונזילות**: האם דמי הניהול מתחת ל-0.2%? האם יש מחזור מסחר יומי גדול מספיק לצאת ברגע פאניקה בלי spread אלים?
+"""
+
+        if analysis_type == "long":
+            analysis_focus = """## ניתוח טווח ארוך — 6 שכבות עומק:
+
+### שכבה 1: מאקרו וסביבה (הרוח הגבית)
+לפני שבודקים את החברה, בודקים את הים שבו היא שטה. מניה טובה בסקטור גוסס תטבע.
+- **כיוון הסקטור**: האם התעשייה שבה החברה פועלת צומחת או מתכווצת?
+- **רגישות לריבית ואינפלציה**: האם החברה מרוויחה מסביבת הריבית הנוכחית, או נחנקת ממנה בגלל עלויות מימון גבוהות?
+- **רוח גבית רגולטורית/ממשלתית**: האם יש כרגע חוקים, תקציבי עתק או תהליכים גיאופוליטיים שדוחפים כסף ישירות לתעשייה?
+
+### שכבה 2: חפיר ומודל עסקי (שרידות הברזל)
+- **צוואר הבקבוק**: איזה בעיה קריטית החברה פותרת שאף אחד אחר לא יכול לפתור באותה יעילות?
+- **עלויות מעבר (Switching Costs)**: אם לקוח ירצה לעזוב מחר ולעבור למתחרה — כמה כואב, יקר וקשה זה?
+- **כוח תמחור (Pricing Power)**: אם החברה מעלה מחירים ב-10%, הלקוחות יישארו מחוסר ברירה או יברחו?
+
+### שכבה 3: פיננסים (המספרים היבשים)
+- **צמיחה אמיתית**: האם Revenue ו-Net Income צומחים שניהם בעקביות, או שהחברה שורפת מזומנים?
+- **תזרים מזומנים חופשי (FCF)**: כמה כסף אמיתי נשאר בקופה אחרי משכורות, חובות והשקעות?
+- **חוסן מאזני (חוב/הון)**: האם לחברה יותר חובות ממזומנים? בריבית גבוהה — חברה עם חובות כבדים היא סכנה.
+
+### שכבה 4: תמחור (האם המחיר הזדמנות?)
+חברה נהדרת במחיר מופקע = השקעה גרועה. חברה טובה במחיר רצפה = הזדמנות פז.
+- **P/E היסטורי**: האם המכפיל כיום נמוך או גבוה מהממוצע ב-5 שנים?
+- **מכפיל מול מתחרים**: נסחרת בזול או ביוקר ביחס למתחרות הישירות?
+- **סיבת הדיסקאונט**: אם זולה — בגלל פאניקה זמנית או פגיעה בלתי הפיכה?
+
+### שכבה 5: הנהלה ובעלי עניין (האנשים על ההגה)
+- **קניות פנימיות (Insider Buying)**: האם המנכ"ל/סמנכ"ל כספים קונים מניות מכסף פרטי? (מוכרים מהרבה סיבות, קונים רק מסיבה אחת: הם יודעים שהמחיר יעלה).
+- **רכישות עצמיות (Buybacks)**: האם החברה קונה חזרה מניות (מגדילה נתח למשקיע), או מדללת בהנפקות?
+
+### שכבה 6: קטליזטור (הדלק לעליות)
+מניה מתומחרת בחסר יכולה להישאר כזו שנים. חייב טריגר.
+- **טריגר קרוב (0-6 חודשים)**: מהו האירוע שיכריח את השוק לתמחר מחדש כלפי מעלה? (דו"ח, אישור רגולטורי, חוזה ענק, שינוי הנהלה)
+
+### השאלה המרכזית: האם שווה להיות שותף בחברה הזו?"""
+        else:
+            analysis_focus = """## ניתוח מסחר יומי/קצר — 4 זירות:
+
+### זירה 1: פסיכולוגיית המלכודת (חיפוש ה"כאב")
+במקום לשאול "האם המניה טובה?", שואלים "מי לכוד עכשיו ומוכרח לברוח?".
+- **מבחן החדשות הרעות**: איך המניה הגיבה לחדשות רעות היום? אם יצאה הודעה גרועה/שוק צולל והמניה מסרבת לרדת או עולה קצת — אין יותר מוכרים. נקודת היפוך.
+- **מבחן סחיטת הכאב (Short Squeeze)**: היכן הנקודה שבה השורטיסטים יתחילו להזיע? חפש קו התנגדות ברור (שיא אתמול). פריצה מעליו = קנייה בפאניקה של שורטיסטים = דלק לעלייה.
+- **מבחן שבירת השווא (Bear Trap)**: האם המניה שברה תמיכה ואז קפצה בחזרה? נר אדום ארוך מתחת לתמיכה שהופך לירוק או משאיר זנב ארוך = הכסף החכם הוריד בכוונה, אסף בזול, ועכשיו יטיס למעלה.
+
+### זירה 2: טביעות אצבע של ה"כסף החכם" (נזילות)
+מוסדיים ואלגוריתמים לא יכולים להחביא את הכסף הגדול. הם משאירים עקבות.
+- **מבחן ה-VWAP**: האם המניה מעל/מתחת ל-VWAP? מעל = מוסדיים קונים. נגיעה ב-VWAP וקפיצה = הכסף הגדול מגן. מתחת ומתקשה לחצות = סימן אזהרה.
+- **מבחן שקר הנפח (Volume Anomaly)**: אם המניה עולה אבל הווליום קטן — זינוק מזויף שייגמר בהתרסקות. פריצה אמיתית = נר ירוק עם ווליום גבוה פי 2 לפחות מהנרות הקודמים.
+
+### זירה 3: שעון הביולוגיה של וול סטריט (תזמון)
+- **מבחן חצי השעה הראשונה**: לפני 10:00 ET זה Amateur Hour — רגשות מוגזמים. ה"אמת" ב-10:15-10:30. האם המניה פורצת את Opening Range?
+- **מבחן צהריים מול Power Hour**: מ-12:00-14:00 השוק ישן (ווליום נמוך). קנייה בשעות האלה = פוזיציה כלואה. סביב 15:00 = Power Hour, תנועות חד-כיווניות חזקות.
+
+### זירה 4: ספר הפקודות והאשליות (Level 2)
+- **מבחן קירות הרפאים (Spoofing)**: האם יש כמות עצומה של מוכרים שנעלמים כשהמחיר מתקרב? זו אשליה. כשה"קיר" נעלם — המחיר ישאב למעלה בחדות.
+
+### בנוסף — טריגרים מיידיים:
+1. **אירועים גיאופוליטיים**: מלחמות, סנקציות, חוזים בינלאומיים.
+2. **שינויים רגולטוריים**: חוקים חדשים, רישיונות, תביעות.
+3. **חוזים חדשים/גדולים**: חוזים שיכולים לשנות גדילה.
+4. **בעיות ייצור/לוגיסטיקה**: עיכובים, תקלות, שרשרת אספקה.
+5. **שביתות עובדים / חילופי הנהלה**: השפעות מיידיות.
+6. **דוחות רבעוניים**: הפתעות, guidance, שינוי תוכנית.
+7. **כל טריגר שיכול להזיז את המניה בימים/שבועות הקרובים.**"""
+
+        return f"""# תפקיד: אנליסט מודיעין שוק ההון — מערכת CATALYST v3.1
+
+אתה אנליסט מודיעין שוק ההון מהשורה הראשונה. אתה לא כותב סקירות — אתה מזהה **קטליזטורים** ו**מלכודות**.
+
+{analysis_focus}
+{etf_addendum}
 
 ## עקרונות ברזל:
 1. **קטליזטור = אירוע שמשנה מחיר.** לא סקירה כללית. לא "החברה טובה". רק: מה הולך לקרות, ולמה זה ישפיע.
-2. **דוח רבעוני אחרון**: מה הודיעה ההנהלה? מה הפתיע? מה השתנה בתוכנית העסקית? (למשל: הפסקת השקעה בתשתיות, שינוי guidance, רכישה/מכירה, קיצוץ עובדים)
-3. **קטליזטורים קדימה**: רגולציה, מאקרו (ריבית, מכסים, גיאו-פוליטיקה), עסקי (חוזים, שותפויות, מוצרים), סקטוריאלי.
+2. **דוח רבעוני אחרון**: מה הודיעה ההנהלה? מה הפתיע? מה השתנה בתוכנית העסקית?
+3. **אם אין קטליזטור ברור — אמור את זה.** עדיף "אין קטליזטור ברור" מאשר לייצר אחד מלאכותי.
 4. **שאלות ממוקדות**: לכל מניה 2-3 שאלות שמשקיע צריך לשאול את עצמו עכשיו, עם תשובות מבוססות.
-5. **אם אין קטליזטור ברור — אמור את זה.** עדיף "אין קטליזטור ברור" מאשר לייצר אחד מלאכותי.
+5. **ניתוח buzz ומניפולציות**: כמה מיוצרי ה-buzz הם stakeholders? היכן הנתונים עובדתיים והיכן שיווק? אלו שמייצרים את הבאז הם בין השאר אלו שמעוניינים שנקנה — התייחס לזה בזהירות. מה ההשפעה של הרעש הזה על הלך הרוח בשוק?
 
 ## נתוני שוק:
 {data_str}
 
 ## המשימה:
-לכל מניה, ייצר ניתוח מלא. **כל הטקסט בעברית. מפתחות JSON באנגלית.**
+לכל מניה, ייצר ניתוח מלא לפי ה{"זירות" if analysis_type == "short" else "שכבות"} שלמעלה. **כל הטקסט בעברית. מפתחות JSON באנגלית.**
 
 ## פורמט פלט — JSON בלבד:
 ```json
@@ -312,13 +401,16 @@ class CatalystEngine:
       "signal": "סיגנל קצר 2-3 מילים",
       "direction": "bullish/bearish/neutral",
       "confidence": 75,
-      "earnings_insight": "ניתוח דוח רבעוני אחרון — 3-5 משפטים. מה הפתיע? מה השתנה? מה ההנהלה אמרה?",
+      "earnings_insight": "ניתוח דוח רבעוני אחרון — 3-5 משפטים. מה הפתיע? מה השתנה?",
       "bottom_line": "שורה תחתונה אחת — למה לשים לב עכשיו",
+      "buzz_alert": "ניתוח באז: כמה מהרעש הוא אמיתי? כמה הוא שיווק של בעלי עניין? מה ההשפעה על הלך הרוח?",
+      "analysis_type": "{analysis_type}",
+      "market": "US/IL",
       "catalysts": [
         {{
-          "type": "earnings/regulatory/macro/business/sector",
+          "type": "earnings/regulatory/macro/business/sector/technical/squeeze",
           "title": "כותרת קצרה",
-          "description": "2-3 משפטים",
+          "description": "2-3 משפטים מבוססים",
           "impact": "חיובי/שלילי/לא ברור",
           "timeframe": "מיידי/ימים/שבועות/חודשים"
         }}
@@ -336,14 +428,23 @@ class CatalystEngine:
 ```
 
 ## כללים:
-- signal: 2-3 מילים שמסכמות את המצב (למשל: "מומנטום חזק", "סיכון רגולטורי", "הזדמנות בתיקון", "ללא קטליזטור ברור")
+- signal: 2-3 מילים שמסכמות את המצב
 - direction: bullish אם הקטליזטורים חיוביים, bearish אם שליליים, neutral אם מעורב
 - confidence: 0-100 — כמה בטוח אתה בכיוון
-- catalysts: 1-5 קטליזטורים. סוגים: earnings, regulatory, macro, business, sector
-- questions: 2-3 שאלות. כל שאלה עם implication: חיובי/שלילי/ניטרלי
-- ETFs (SMH, SOXX, QQQ, SPY): נתח ברמת האינדקס — מה מניע את הסקטור/שוק
+- analysis_type: "{analysis_type}" (סוג הניתוח)
+- market: "US" (ברירת מחדל) או "IL" (לטיקרים ישראליים)
+- buzz_alert: ניתוח מניפולציות — בדוק מי מייצר את הבאז ולמה, הפרד בין עובדות לשיווק, זהה השפעת הרעש על השוק
+- catalysts: 1-5 קטליזטורים (כולל סוגים חדשים: technical, squeeze)
+- questions: 2-3 שאלות עם implication
+- ETFs (SMH, SOXX, QQQ, SPY): נתח ברמת האינדקס עם שאלות ריכוזיות ונזילות
 
 **חשוב: החזר JSON בלבד. ללא טקסט נוסף.**"""
+
+    def determine_market(self, ticker: str) -> str:
+        """Determine if ticker is Israeli or US market."""
+        if ticker in ISRAELI_TICKERS or ticker.endswith(".IL"):
+            return "IL"
+        return "US"
 
 
 # ==============================================================
@@ -547,6 +648,13 @@ def parse_args():
         default="",
         help="Run specific ticker(s). Comma-separated. Example: ASML,PLTR"
     )
+    parser.add_argument(
+        "--analysis-type",
+        type=str,
+        default="short",
+        choices=["short", "long"],
+        help="Analysis type: short (days/weeks focus) or long (structural/moat focus). Default: short"
+    )
     return parser.parse_args()
 
 
@@ -562,7 +670,8 @@ def main():
         partial_run = False
 
     log.info("=" * 60)
-    log.info("CATALYST v3.0 — Stock Catalyst Intelligence")
+    log.info("CATALYST v3.1 — Stock Catalyst Intelligence")
+    log.info(f"Analysis type: {args.analysis_type.upper()}")
     if partial_run:
         log.info(f"PARTIAL RUN — tickers: {', '.join(run_tickers)}")
     else:
@@ -596,7 +705,7 @@ def main():
 
         log.info(f"  ── Batch {i // batch_size + 1}: {', '.join(batch_tickers)} ──")
 
-        prompt = engine.build_analysis_prompt(batch_data)
+        prompt = engine.build_analysis_prompt(batch_data, analysis_type=args.analysis_type)
         response = engine.call_gemini(prompt, temperature=0.6)
         result = extract_json(response)
 
@@ -608,6 +717,12 @@ def main():
                 if ticker in valid_data:
                     validated["price"] = valid_data[ticker].get("price", 0)
                     validated["change_pct"] = valid_data[ticker].get("change_pct", 0)
+                    # Set analysis_type if not already set
+                    if "analysis_type" not in validated:
+                        validated["analysis_type"] = args.analysis_type
+                    # Set market if not already set
+                    if "market" not in validated:
+                        validated["market"] = engine.determine_market(ticker)
                 batch_results[ticker] = validated
                 log.info(f"    ✓ {ticker}: {validated.get('signal', '?')} ({validated.get('direction', '?')})")
         else:
@@ -620,13 +735,19 @@ def main():
             for mt in missing:
                 try:
                     time.sleep(2)
-                    retry_prompt = engine.build_analysis_prompt([valid_data[mt]])
+                    retry_prompt = engine.build_analysis_prompt([valid_data[mt]], analysis_type=args.analysis_type)
                     retry_resp = engine.call_gemini(retry_prompt, temperature=0.6)
                     retry_result = extract_json(retry_resp)
                     if retry_result and "stocks" in retry_result and retry_result["stocks"]:
                         validated = validate_stock(retry_result["stocks"][0])
                         validated["price"] = valid_data[mt].get("price", 0)
                         validated["change_pct"] = valid_data[mt].get("change_pct", 0)
+                        # Set analysis_type if not already set
+                        if "analysis_type" not in validated:
+                            validated["analysis_type"] = args.analysis_type
+                        # Set market if not already set
+                        if "market" not in validated:
+                            validated["market"] = engine.determine_market(mt)
                         batch_results[mt] = validated
                         log.info(f"    ✓ {mt} (retry): {validated.get('signal', '?')}")
                     else:
@@ -650,6 +771,9 @@ def main():
                     "change_pct": valid_data[t].get("change_pct", 0),
                     "earnings_insight": "ניתוח לא זמין — נסה שנית",
                     "bottom_line": "ניתוח לא זמין",
+                    "buzz_alert": "ניתוח לא זמין",
+                    "analysis_type": args.analysis_type,
+                    "market": engine.determine_market(t),
                     "catalysts": [{"type": "unknown", "title": "לא זמין", "description": "הניתוח נכשל", "impact": "לא ברור", "timeframe": "לא ידוע"}],
                     "questions": [{"question": "?", "answer": "ניתוח לא זמין", "implication": "ניטרלי"}],
                 })
@@ -684,7 +808,8 @@ def main():
         "meta": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "market_status": get_market_status(),
-            "pipeline_version": "3.0",
+            "pipeline_version": "3.1",
+            "analysis_type": args.analysis_type,
             "total_tickers": len(all_analyses),
             "run_mode": "partial" if partial_run else "full",
             "tickers_updated": run_tickers,
@@ -716,9 +841,10 @@ def main():
 
     elapsed = time.time() - start_time
     log.info(f"Saved {len(all_analyses)} analyses to {Config.OUTPUT_FILE}")
+    log.info(f"Analysis type: {args.analysis_type}")
     log.info(f"Total time: {elapsed:.1f}s")
     log.info("=" * 60)
-    log.info("CATALYST v3.0 COMPLETE")
+    log.info("CATALYST v3.1 COMPLETE")
     log.info("=" * 60)
 
 

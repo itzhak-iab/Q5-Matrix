@@ -1,62 +1,67 @@
-name: CATALYST — Stock Catalyst Intelligence
+name: Daily Catalyst Matrix
 
 on:
+  schedule:
+    - cron: '0 12 * * 1-5'
   workflow_dispatch:
     inputs:
       ticker:
-        description: 'Run specific ticker(s), comma-separated (leave empty for all). Example: ASML,PLTR'
+        description: 'Specific ticker(s) to analyze (comma-separated, empty = full scan)'
         required: false
         default: ''
-        type: string
-
-  schedule:
-    - cron: '0 12 * * 1-5'  # Monday-Friday at 12:00 UTC
+      analysis_type:
+        description: 'Analysis type: short (immediate triggers) or long (structural quality)'
+        required: false
+        default: 'short'
+        type: choice
+        options:
+          - short
+          - long
 
 permissions:
   contents: write
 
 jobs:
-  run-catalyst:
+  analyze:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: 'backend/requirements.txt'
 
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
-      - name: Run CATALYST Engine
+      - name: Run catalyst analysis
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          TICKER="${{ github.event.inputs.ticker }}"
-          if [ -n "$TICKER" ]; then
-            echo "Running for: $TICKER"
-            python backend/macro_agent.py --ticker "$TICKER"
-          else
-            echo "Running full scan"
-            python backend/macro_agent.py
+          cd backend
+          ARGS=""
+          if [ -n "${{ github.event.inputs.ticker }}" ]; then
+            ARGS="--ticker ${{ github.event.inputs.ticker }}"
           fi
+          if [ -n "${{ github.event.inputs.analysis_type }}" ]; then
+            ARGS="$ARGS --analysis-type ${{ github.event.inputs.analysis_type }}"
+          fi
+          python macro_agent.py $ARGS
 
-      - name: Commit updated data
+      - name: Commit & push
         run: |
-          git config user.name "CATALYST Bot"
-          git config user.email "bot@catalyst.local"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/master_data.json docs/history/
           TICKER="${{ github.event.inputs.ticker }}"
-          MSG="CATALYST update"
+          ATYPE="${{ github.event.inputs.analysis_type }}"
+          TS=$(date -u +"%Y-%m-%d %H:%M UTC")
           if [ -n "$TICKER" ]; then
-            MSG="CATALYST — $TICKER"
+            MSG="CATALYST – ${TICKER} [${ATYPE:-short}] ${TS}"
+          else
+            MSG="CATALYST update [${ATYPE:-short}] ${TS}"
           fi
-          git diff --staged --quiet || git commit -m "$MSG — $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git pull --rebase origin main || true
+          git diff --cached --quiet || git commit -m "$MSG"
           git push

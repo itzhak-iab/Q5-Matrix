@@ -22,8 +22,6 @@
         }
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);overscroll-behavior:none}
-
-        /* ══════ LOGIN ══════ */
         .login{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
         .login.hide{display:none}
         .login-box{width:340px;max-width:88vw;text-align:center}
@@ -38,12 +36,8 @@
         .login-msg{color:var(--red);font-size:12px;margin-top:12px;min-height:18px}
         .login-msg.lock{color:var(--amber)}
         .login-label{font-size:12px;color:var(--txt2);margin-bottom:12px}
-
-        /* ══════ APP SHELL ══════ */
         .app{display:none;flex-direction:column;height:100dvh;height:100vh}
         .app.on{display:flex}
-
-        /* ─── TOP BAR ─── */
         .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;min-height:54px}
         .topbar-logo{font-size:18px;font-weight:900;letter-spacing:3px;background:linear-gradient(135deg,var(--accent),#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -59,36 +53,24 @@
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
         .btn-ghost{background:none;border:1px solid var(--border);color:var(--txt3);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:10px;white-space:nowrap}
         .btn-ghost:hover{border-color:var(--red);color:var(--red)}
-
-        /* ─── INFO BAR ─── */
         .infobar{display:none;padding:6px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;color:var(--txt3);flex-shrink:0;gap:10px;align-items:center;flex-wrap:wrap}
         .infobar.on{display:flex}
         .infobar select{background:var(--bg3);border:1px solid var(--border);color:var(--txt);padding:4px 8px;border-radius:6px;font-size:11px;font-family:var(--mono);cursor:pointer;outline:none}
         .arch-badge{color:var(--amber);font-weight:700;display:none;font-size:10px}
         .arch-badge.on{display:inline}
         .info-spacer{flex:1}
-
-        /* ─── FILTER BAR ─── */
         .filter-bar{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
         .filter-bar::-webkit-scrollbar{display:none}
         .fbtn{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--txt3);white-space:nowrap;transition:.2s}
         .fbtn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
         .fbtn:hover{border-color:var(--accent-dim)}
-
-        /* ─── CONTENT ─── */
         .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
         .content::-webkit-scrollbar{width:4px}
         .content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-
-        /* ─── LOADING ─── */
         .loading{text-align:center;color:var(--txt3);padding:60px 20px}
         .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
         @keyframes spin{to{transform:rotate(360deg)}}
-
-        /* ─── STOCK LIST ─── */
         .stock-list{padding:12px 16px;display:flex;flex-direction:column;gap:10px;max-width:720px;margin:0 auto;width:100%}
-
-        /* ─── CARD ─── */
         .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
         .card:hover{border-color:rgba(0,212,255,.25);background:var(--bg3)}
         .card:active{transform:scale(.985)}
@@ -96,7 +78,6 @@
         .card.bullish::before{background:linear-gradient(90deg,var(--green),transparent)}
         .card.bearish::before{background:linear-gradient(90deg,var(--red),transparent)}
         .card.neutral::before{background:linear-gradient(90deg,var(--txt3),transparent)}
-
         .card-row1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
         .card-left{display:flex;align-items:center;gap:10px}
         .card-ticker{font-size:20px;font-weight:900;font-family:var(--mono);letter-spacing:1px}
@@ -109,20 +90,18 @@
         .card-conf.hi{background:rgba(45,212,168,.1);color:var(--green);border:1px solid rgba(45,212,168,.2)}
         .card-conf.mid{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
         .card-conf.lo{background:rgba(240,80,110,.1);color:var(--red);border:1px solid rgba(240,80,110,.2)}
-
         .card-row2{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
         .card-signal{display:inline-block;padding:3px 10px;border-radius:5px;font-size:10.5px;font-weight:700;letter-spacing:.3px}
         .card-signal.bullish{background:rgba(45,212,168,.08);border:1px solid rgba(45,212,168,.25);color:var(--green)}
         .card-signal.bearish{background:rgba(240,80,110,.08);border:1px solid rgba(240,80,110,.25);color:var(--red)}
         .card-signal.neutral{background:rgba(139,124,246,.08);border:1px solid rgba(139,124,246,.25);color:var(--purple)}
         .card-co{font-size:10.5px;color:var(--txt3)}
-
         .card-bottom{font-size:12px;line-height:1.6;color:var(--txt2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-
-        /* ─── EMPTY STATE ─── */
+        .card-badges{display:flex;gap:4px;align-items:center;margin-left:auto}
+        .card-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:6px;font-size:9px;font-weight:700}
+        .card-badge.short{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
+        .card-badge.long{background:rgba(139,124,246,.1);color:var(--purple);border:1px solid rgba(139,124,246,.2)}
         .empty-state{text-align:center;padding:60px 20px;color:var(--txt3)}
-
-        /* ─── OVERLAY & DRAWER ─── */
         .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;z-index:100;opacity:0;transition:opacity .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
         .overlay.on{display:block;opacity:1}
         .drawer{position:fixed;top:0;right:-100%;width:100%;max-width:580px;height:100dvh;height:100vh;background:var(--bg);border-left:1px solid rgba(0,212,255,.1);z-index:101;transition:right .3s cubic-bezier(.16,1,.3,1);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px calc(20px + var(--safe-b));box-shadow:-8px 0 32px rgba(0,0,0,.5)}
@@ -131,8 +110,6 @@
         .drawer::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
         .close-x{position:sticky;top:0;z-index:5;display:flex;justify-content:flex-start;padding-bottom:8px}
         .close-x button{background:var(--bg2);border:1px solid var(--border);color:var(--txt2);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center}
-
-        /* ─── DRAWER CONTENT ─── */
         .d-head{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
         .d-ticker{font-size:28px;font-weight:900;font-family:var(--mono);letter-spacing:2px;background:linear-gradient(135deg,var(--accent),#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .d-meta{font-size:12px;color:var(--txt2);margin-top:3px}
@@ -142,16 +119,12 @@
         .d-signal.bearish{background:rgba(240,80,110,.1);border:1.5px solid rgba(240,80,110,.3);color:var(--red)}
         .d-signal.neutral{background:rgba(139,124,246,.1);border:1.5px solid rgba(139,124,246,.3);color:var(--purple)}
         .d-conf{font-size:11px;color:var(--txt3);margin-bottom:14px}
-        .d-conf strong{font-size:22px;font-family:var(--mono)}
+        .d-conf strong{font-size:22px;font-weight:900;font-family:var(--mono)}
         .d-conf strong.hi{color:var(--green)}.d-conf strong.mid{color:var(--amber)}.d-conf strong.lo{color:var(--red)}
-
         .d-bl{font-size:14px;line-height:1.7;color:var(--txt);padding:12px 14px;background:rgba(0,212,255,.04);border-radius:var(--r);border-right:3px solid var(--accent);margin-bottom:16px;font-weight:500}
-
         .d-sec{margin-bottom:12px;padding:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
         .d-sec-t{font-size:11px;font-weight:700;margin-bottom:8px;color:var(--accent);letter-spacing:1px;text-transform:uppercase}
         .d-sec-b{font-size:12.5px;color:var(--txt2);line-height:1.75}
-
-        /* ─── CATALYST ITEMS ─── */
         .cat-item{padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;position:relative;overflow:hidden}
         .cat-item::before{content:'';position:absolute;top:0;right:0;width:3px;height:100%;border-radius:0 var(--r) var(--r) 0}
         .cat-item.pos::before{background:var(--green)}.cat-item.neg::before{background:var(--red)}.cat-item.unk::before{background:var(--amber)}
@@ -163,10 +136,10 @@
         .cat-type.macro{background:rgba(245,166,35,.1);color:var(--amber)}
         .cat-type.business{background:rgba(45,212,168,.1);color:var(--green)}
         .cat-type.sector{background:rgba(139,124,246,.1);color:var(--purple)}
+        .cat-type.technical{background:rgba(0,212,255,.08);color:#5eead4;border:1px solid rgba(0,212,255,.2)}
+        .cat-type.squeeze{background:rgba(240,80,110,.08);color:#fda4af;border:1px solid rgba(240,80,110,.2)}
         .cat-desc{font-size:11.5px;color:var(--txt2);line-height:1.6}
         .cat-tf{font-size:10px;color:var(--txt3);margin-top:4px}
-
-        /* ─── Q&A ─── */
         .qa{padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:.15s}
         .qa:hover{background:var(--bg4)}
         .qa-q{font-size:12.5px;font-weight:700;color:var(--txt);margin-bottom:6px}
@@ -176,16 +149,36 @@
         .qa-imp.pos{background:rgba(45,212,168,.1);color:var(--green)}
         .qa-imp.neg{background:rgba(240,80,110,.1);color:var(--red)}
         .qa-imp.neut{background:rgba(139,124,246,.1);color:var(--purple)}
-
-        /* ─── MODAL ─── */
+        .buzz-alert{margin-bottom:12px;padding:14px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.3);border-radius:var(--r);display:flex;gap:10px;align-items:flex-start}
+        .buzz-alert-icon{font-size:18px;flex-shrink:0}
+        .buzz-alert-content{flex:1}
+        .buzz-alert-t{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+        .buzz-alert-b{font-size:12.5px;color:var(--txt);line-height:1.6}
         .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:20px}
         .modal.on{display:flex}
-        .modal-box{background:var(--bg2);border:1px solid rgba(0,212,255,.2);border-radius:14px;padding:28px 24px;width:360px;max-width:100%;text-align:center}
+        .modal-box{background:var(--bg2);border:1px solid rgba(0,212,255,.2);border-radius:14px;padding:28px 24px;width:360px;max-width:100%;text-align:center;max-height:90vh;overflow-y:auto}
         .modal-box h3{font-size:15px;margin-bottom:5px;color:var(--accent)}
         .modal-box p{font-size:11px;color:var(--txt3);margin-bottom:14px}
+        .m-section{margin-bottom:18px}
+        .m-section-title{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+        .m-analysis-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+        .m-analysis-opt{padding:10px;border:1.5px solid var(--border);border-radius:8px;background:transparent;color:var(--txt3);cursor:pointer;font-size:11px;font-weight:600;transition:.2s;text-align:right}
+        .m-analysis-opt:hover{border-color:var(--accent-dim);color:var(--txt)}
+        .m-analysis-opt.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
+        .m-analysis-desc{font-size:9px;color:var(--txt3);margin-top:4px;line-height:1.5}
         .m-picks{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:14px}
         .m-pick{padding:5px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--txt3);font-family:var(--mono);transition:.2s}
         .m-pick.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
+        .m-pick.custom{background:rgba(139,124,246,.1);border-color:rgba(139,124,246,.3);color:var(--purple)}
+        .m-pick.custom.active{background:var(--purple);border-color:var(--purple);color:#fff}
+        .m-market-selector{display:flex;gap:8px;margin-bottom:14px}
+        .m-market-btn{flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:transparent;color:var(--txt3);cursor:pointer;font-size:11px;font-weight:700;transition:.2s}
+        .m-market-btn:hover{border-color:var(--accent-dim);color:var(--txt)}
+        .m-market-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
+        .m-input-group{margin-bottom:12px;text-align:right}
+        .m-input-group label{display:block;font-size:10px;color:var(--txt3);margin-bottom:6px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+        .m-input-group input{width:100%;padding:10px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--txt);font-size:12px;outline:none;font-family:inherit;text-align:right}
+        .m-input-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
         .m-pin{display:flex;gap:6px;justify-content:center;margin-bottom:16px;direction:ltr}
         .m-pin input{width:40px;height:46px;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;color:var(--txt);font-family:var(--mono);font-size:17px;font-weight:700;text-align:center;outline:none;-webkit-text-security:disc}
         .m-pin input:focus{border-color:var(--accent)}
@@ -193,11 +186,9 @@
         .m-acts button{flex:1;padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
         .m-cancel{background:none;border:1px solid var(--border);color:var(--txt3)}
         .m-confirm{background:linear-gradient(135deg,var(--accent),#6366f1);border:none;color:#fff}
+        .m-remove{background:none;border:1px solid var(--red);color:var(--red)}
         .m-err{color:var(--red);font-size:10px;margin-top:8px;min-height:14px}
-
         .footer{text-align:center;padding:6px;font-size:9px;color:var(--txt3);border-top:1px solid var(--border);flex-shrink:0;letter-spacing:1px;display:none;padding-bottom:calc(6px + var(--safe-b))}
-
-        /* ══════ DESKTOP ══════ */
         @media(min-width:900px){
             .topbar{padding:12px 28px}
             .topbar-logo{font-size:22px}
@@ -209,8 +200,6 @@
     </style>
 </head>
 <body>
-
-<!-- ═══ LOGIN ═══ -->
 <div id="login" class="login">
     <div class="login-box">
         <div class="login-logo">CATALYST</div>
@@ -228,18 +217,16 @@
         <div class="login-msg" id="login-msg"></div>
     </div>
 </div>
-
-<!-- ═══ APP ═══ -->
 <div id="app" class="app">
     <div class="topbar">
         <div class="topbar-logo">CATALYST</div>
         <div class="topbar-right">
             <span id="status"></span>
+            <button class="btn-s" id="add-btn" onclick="showAddTickerModal()" title="הוסף טיקר">+</button>
             <button class="btn-s" id="run-btn" onclick="showRunModal()">SCAN</button>
             <button class="btn-ghost" onclick="logout()">יציאה</button>
         </div>
     </div>
-
     <div class="infobar" id="infobar">
         <span id="ts-info"></span>
         <span id="scan-info"></span>
@@ -248,33 +235,41 @@
         <select id="hist-sel" onchange="loadHistory(this.value)"><option value="">נוכחי</option></select>
         <span class="arch-badge" id="arch-badge">ARCHIVE</span>
     </div>
-
-    <!-- Filter Bar -->
     <div class="filter-bar" id="filter-bar">
         <button class="fbtn active" data-filter="all" onclick="setFilter('all',this)">הכל</button>
         <button class="fbtn" data-filter="bullish" onclick="setFilter('bullish',this)">חיובי</button>
         <button class="fbtn" data-filter="bearish" onclick="setFilter('bearish',this)">שלילי</button>
         <button class="fbtn" data-filter="high" onclick="setFilter('high',this)">ביטחון גבוה</button>
+        <button class="fbtn" data-filter="us" onclick="setFilter('us',this)" title="שוק אמריקאי">🇺🇸</button>
+        <button class="fbtn" data-filter="il" onclick="setFilter('il',this)" title="שוק ישראלי">🇮🇱</button>
     </div>
-
     <div class="content" id="content">
         <div id="loading" class="loading"><div class="spinner"></div><div>טוען נתוני מודיעין...</div></div>
         <div class="stock-list" id="stock-list" style="display:none"></div>
     </div>
-
     <div class="footer" id="footer"></div>
-
     <div class="overlay" id="overlay" onclick="closeDrawer()"></div>
     <div class="drawer" id="drawer">
         <div class="close-x"><button onclick="closeDrawer()">&#x00D7;</button></div>
         <div id="drawer-c"></div>
     </div>
 </div>
-
-<!-- ═══ RUN MODAL ═══ -->
 <div id="run-modal" class="modal">
     <div class="modal-box">
         <h3>הרצת סריקה</h3>
+        <div class="m-section">
+            <div class="m-section-title">סוג ניתוח</div>
+            <div class="m-analysis-opts">
+                <button class="m-analysis-opt active" data-type="short" onclick="selectAnalysisType('short',this)">
+                    <div>⏱ טווח קצר</div>
+                    <div class="m-analysis-desc">גיאופוליטי, רגולטורי, דוחות, תקלות, חילופי אנשים</div>
+                </button>
+                <button class="m-analysis-opt" data-type="long" onclick="selectAnalysisType('long',this)">
+                    <div>📅 טווח ארוך</div>
+                    <div class="m-analysis-desc">מבנה עסקי, תחרות, חדשנות, יציבות פיננסית</div>
+                </button>
+            </div>
+        </div>
         <p>בחר טיקר ספציפי או סרוק הכל:</p>
         <div class="m-picks" id="m-picks">
             <button class="m-pick active" data-val="" onclick="pickTicker(this)">הכל</button>
@@ -295,14 +290,35 @@
         <div class="m-err" id="m-err"></div>
     </div>
 </div>
-
+<div id="add-ticker-modal" class="modal">
+    <div class="modal-box">
+        <h3>הוסף טיקר למעקב</h3>
+        <div class="m-section">
+            <div class="m-section-title">בחר שוק</div>
+            <div class="m-market-selector">
+                <button class="m-market-btn active" data-market="US" onclick="selectMarket('US',this)">🇺🇸 שוק אמריקאי</button>
+                <button class="m-market-btn" data-market="IL" onclick="selectMarket('IL',this)">🇮🇱 שוק ישראלי</button>
+            </div>
+        </div>
+        <div class="m-input-group">
+            <label>סמל טיקר (Ticker)</label>
+            <input type="text" id="add-ticker-input" placeholder="לדוגמה: AAPL" autocomplete="off" maxlength="10">
+        </div>
+        <div class="m-input-group">
+            <label>שם החברה (עברית)</label>
+            <input type="text" id="add-name-input" placeholder="לדוגמה: אפל" autocomplete="off" maxlength="50">
+        </div>
+        <div class="m-acts">
+            <button class="m-confirm" onclick="confirmAddTicker()">הוסף למעקב</button>
+            <button class="m-cancel" onclick="closeAddTickerModal()">ביטול</button>
+        </div>
+        <div class="m-err" id="add-err"></div>
+    </div>
+</div>
 <script>
-/* ═══════════════════════════════════════
-   AUTH
-   ═══════════════════════════════════════ */
 let HASH="",S_HRS=24,MAX_ATT=5,LOCK_MIN=15,att=0,lockUntil=0;
 const WATCHLIST=["ASML","PLTR","MELI","URNM","FCX","ISRG","PWR","XYL","STNG","SMH","LNG","SOXX","QQQ","SPY","MU"];
-let DATA=null,currentFilter="all";
+let DATA=null,currentFilter="all",selectedAnalysisType="short",selectedMarket="US";
 
 (async()=>{try{const r=await fetch("config.json?v="+Date.now());const c=await r.json();HASH=c.auth.pin_hash;MAX_ATT=c.auth.max_attempts||5;LOCK_MIN=c.auth.lockout_minutes||15;S_HRS=c.auth.session_hours||24}catch(e){console.error("Config:",e)}})();
 
@@ -348,17 +364,34 @@ async function tryLogin(){
     else{att++;if(att>=MAX_ATT){lockUntil=Date.now()+(LOCK_MIN*6e4);document.getElementById("login-msg").innerHTML='<span class="lock">נעילה ל-'+LOCK_MIN+' דקות</span>';att=0}else{document.getElementById("login-msg").textContent="קוד שגוי ("+(MAX_ATT-att)+" נותרו)"}
     ins.forEach(i=>{i.value="";i.classList.add("err")});setTimeout(()=>ins.forEach(i=>i.classList.remove("err")),500);ins[0].focus()}
 }
-function showApp(){document.getElementById("login").classList.add("hide");document.getElementById("app").classList.add("on");loadData();buildTickerPicks()}
+function showApp(){document.getElementById("login").classList.add("hide");document.getElementById("app").classList.add("on");loadCustomTickers();loadData();buildTickerPicks()}
 function logout(){sessionStorage.removeItem("cats");location.reload()}
+
+function loadCustomTickers(){
+    try{const ct=localStorage.getItem("custom_tickers");if(ct){const custom=JSON.parse(ct);WATCHLIST.push(...custom.map(c=>c.symbol))}}catch(e){console.error("Custom tickers:",e)}
+}
 
 function buildTickerPicks(){
     const c=document.getElementById("m-picks");
-    WATCHLIST.forEach(t=>{const b=document.createElement("button");b.className="m-pick";b.dataset.val=t;b.textContent=t;b.onclick=()=>pickTicker(b);c.appendChild(b)});
+    const custom=getCustomTickers();
+    WATCHLIST.forEach(t=>{
+        if(!WATCHLIST.slice(0,15).includes(t)||!custom.some(ct=>ct.symbol===t)){
+            const b=document.createElement("button");
+            b.className="m-pick";
+            const isCust=custom.some(ct=>ct.symbol===t);
+            if(isCust)b.classList.add("custom");
+            b.dataset.val=t;
+            b.textContent=t;
+            b.onclick=()=>pickTicker(b);
+            c.appendChild(b);
+        }
+    });
 }
 
-/* ═══════════════════════════════════════
-   DATA
-   ═══════════════════════════════════════ */
+function getCustomTickers(){
+    try{const ct=localStorage.getItem("custom_tickers");return ct?JSON.parse(ct):[]}catch{return[]}
+}
+
 async function loadData(){
     try{
         const r=await fetch("master_data.json?v="+Date.now());
@@ -387,9 +420,6 @@ async function loadHistory(f){
     try{const r=await fetch(f+"?v="+Date.now());if(!r.ok)throw 0;DATA=await r.json();document.getElementById("arch-badge").classList.add("on");render()}catch(e){alert("שגיאה בטעינת ארכיון")}
 }
 
-/* ═══════════════════════════════════════
-   FILTER
-   ═══════════════════════════════════════ */
 function setFilter(f,el){
     currentFilter=f;
     document.querySelectorAll(".fbtn").forEach(b=>b.classList.remove("active"));
@@ -397,9 +427,6 @@ function setFilter(f,el){
     render();
 }
 
-/* ═══════════════════════════════════════
-   RENDER
-   ═══════════════════════════════════════ */
 function render(){
     document.getElementById("loading").style.display="none";
     const list=document.getElementById("stock-list");list.style.display="flex";list.innerHTML="";
@@ -416,10 +443,11 @@ function render(){
 
     let stocks=DATA.stocks||[];
 
-    // Filter
     if(currentFilter==="bullish")stocks=stocks.filter(s=>s.direction==="bullish");
     else if(currentFilter==="bearish")stocks=stocks.filter(s=>s.direction==="bearish");
     else if(currentFilter==="high")stocks=stocks.filter(s=>(s.confidence||0)>=70);
+    else if(currentFilter==="us")stocks=stocks.filter(s=>(s.market||"US")==="US");
+    else if(currentFilter==="il")stocks=stocks.filter(s=>(s.market||"US")==="IL");
 
     if(!stocks.length){
         list.innerHTML='<div class="empty-state"><div style="font-size:28px;opacity:.3;margin-bottom:10px">—</div><div style="font-size:13px">אין תוצאות לפילטר הנוכחי</div></div>';
@@ -431,9 +459,18 @@ function render(){
         const cls=conf>=70?"hi":conf>=45?"mid":"lo";
         const dir=stock.direction||"neutral";
         const chg=stock.change_pct||0;
+        const analysisType=stock.analysis_type||"";
         const card=document.createElement("div");
         card.className="card "+dir;
         card.onclick=()=>openDrawer(stock);
+
+        let badgesHtml="";
+        if(analysisType){
+            const badgeIcon=analysisType==="short"?"⏱":"📅";
+            const badgeCls=analysisType==="short"?"short":"long";
+            badgesHtml=`<span class="card-badge ${badgeCls}">${badgeIcon}</span>`;
+        }
+
         card.innerHTML=`
             <div class="card-row1">
                 <div class="card-left">
@@ -450,20 +487,20 @@ function render(){
             <div class="card-row2">
                 <span class="card-signal ${dir}">${stock.signal||""}</span>
                 <span class="card-co">${stock.company_name||""}</span>
+                ${badgesHtml?'<div class="card-badges">'+badgesHtml+'</div>':""}
             </div>
             <div class="card-bottom">${stock.bottom_line||""}</div>`;
         list.appendChild(card);
     });
 }
 
-/* ═══════════════════════════════════════
-   DRAWER
-   ═══════════════════════════════════════ */
 function openDrawer(s){
     const dir=s.direction||"neutral";
     const conf=s.confidence||0;
     const cls=conf>=70?"hi":conf>=45?"mid":"lo";
     const chg=s.change_pct||0;
+    const custom=getCustomTickers();
+    const isCustom=custom.some(ct=>ct.symbol===s.ticker);
 
     let h=`<div class="d-head">
         <div class="d-ticker">${s.ticker}</div>
@@ -474,13 +511,20 @@ function openDrawer(s){
     h+=`<div class="d-signal ${dir}">${s.signal||""}</div>`;
     h+=`<div class="d-conf">ביטחון: <strong class="${cls}">${conf}</strong> / 100</div>`;
 
-    // Bottom line
     if(s.bottom_line)h+=`<div class="d-bl">${s.bottom_line}</div>`;
 
-    // Earnings insight
+    if(s.buzz_alert){
+        h+=`<div class="buzz-alert">
+            <div class="buzz-alert-icon">⚠️</div>
+            <div class="buzz-alert-content">
+                <div class="buzz-alert-t">התראת באז</div>
+                <div class="buzz-alert-b">${s.buzz_alert}</div>
+            </div>
+        </div>`;
+    }
+
     if(s.earnings_insight)h+=`<div class="d-sec"><div class="d-sec-t">דוח רבעוני אחרון</div><div class="d-sec-b">${s.earnings_insight}</div></div>`;
 
-    // Catalysts
     const cats=s.catalysts||[];
     if(cats.length){
         h+=`<div class="d-sec"><div class="d-sec-t">קטליזטורים</div>`;
@@ -496,7 +540,6 @@ function openDrawer(s){
         h+=`</div>`;
     }
 
-    // Q&A
     const qs=s.questions||[];
     if(qs.length){
         h+=`<div class="d-sec"><div class="d-sec-t">שאלות מפתח</div>`;
@@ -510,21 +553,35 @@ function openDrawer(s){
         h+=`</div>`;
     }
 
+    if(isCustom){
+        h+=`<div class="d-sec" style="border-color:rgba(139,124,246,.3)">
+            <button class="m-remove" onclick="removeCustomTicker('${s.ticker}')" style="width:100%;padding:10px;border-radius:8px;font-size:12px">הסר ממעקב</button>
+        </div>`;
+    }
+
     document.getElementById("drawer-c").innerHTML=h;
     document.getElementById("drawer").classList.add("on");
     document.getElementById("overlay").classList.add("on");
     document.body.style.overflow="hidden";
 }
+
+function removeCustomTicker(ticker){
+    const custom=getCustomTickers().filter(ct=>ct.symbol!==ticker);
+    localStorage.setItem("custom_tickers",JSON.stringify(custom));
+    const idx=WATCHLIST.indexOf(ticker);
+    if(idx>-1)WATCHLIST.splice(idx,1);
+    closeDrawer();
+    buildTickerPicks();
+    render();
+}
+
 function closeDrawer(){
     document.getElementById("drawer").classList.remove("on");
     document.getElementById("overlay").classList.remove("on");
     document.body.style.overflow="";
 }
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();closeRunModal()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();closeRunModal();closeAddTickerModal()}});
 
-/* ═══════════════════════════════════════
-   RUN WORKFLOW
-   ═══════════════════════════════════════ */
 let selectedTicker="";
 function pickTicker(el){
     document.querySelectorAll(".m-pick").forEach(b=>b.classList.remove("active"));
@@ -532,7 +589,22 @@ function pickTicker(el){
     selectedTicker=el.dataset.val;
 }
 
-function showRunModal(){document.getElementById("run-modal").classList.add("on");document.getElementById("m-err").textContent="";selectedTicker="";document.querySelectorAll(".m-pick").forEach(b=>b.classList.toggle("active",!b.dataset.val));[...document.querySelectorAll("#m-pin input")].forEach(i=>i.value="");initPins("m-pin")}
+function selectAnalysisType(t,el){
+    selectedAnalysisType=t;
+    document.querySelectorAll(".m-analysis-opt").forEach(b=>b.classList.remove("active"));
+    el.classList.add("active");
+}
+
+function showRunModal(){
+    document.getElementById("run-modal").classList.add("on");
+    document.getElementById("m-err").textContent="";
+    selectedTicker="";
+    selectedAnalysisType="short";
+    document.querySelectorAll(".m-pick").forEach(b=>b.classList.toggle("active",!b.dataset.val));
+    document.querySelectorAll(".m-analysis-opt").forEach(b=>b.classList.toggle("active",b.dataset.type==="short"));
+    [...document.querySelectorAll("#m-pin input")].forEach(i=>i.value="");
+    initPins("m-pin");
+}
 function closeRunModal(){document.getElementById("run-modal").classList.remove("on")}
 
 async function confirmRun(){
@@ -541,17 +613,17 @@ async function confirmRun(){
     if(pin.length!==6){document.getElementById("m-err").textContent="הזן 6 ספרות";return}
     const h=await sha256(pin);
     if(h!==HASH){document.getElementById("m-err").textContent="קוד שגוי";ins.forEach(i=>i.value="");ins[0].focus();return}
-    closeRunModal();triggerWorkflow(selectedTicker);
+    closeRunModal();triggerWorkflow(selectedTicker,selectedAnalysisType);
 }
 
-async function triggerWorkflow(ticker){
+async function triggerWorkflow(ticker,analysisType){
     const btn=document.getElementById("run-btn");
     btn.textContent="SCANNING...";btn.classList.add("running");btn.disabled=true;
     try{
         const _e="d1NlUDUwMmdVMWptVkk5OHV2bFpOSmJjMHZkRnRteDJ2bDREX3BoZw==";
         const _d=atob(_e).split("").reverse().join("");
-        const body={ref:"main"};
-        if(ticker)body.inputs={ticker:ticker};
+        const body={ref:"main",inputs:{analysis_type:analysisType||"short"}};
+        if(ticker)body.inputs.ticker=ticker;
         const resp=await fetch("https://api.github.com/repos/itzhak-iab/Q5-Matrix/actions/workflows/daily_matrix.yml/dispatches",{
             method:"POST",headers:{"Authorization":"token "+_d,"Accept":"application/vnd.github+json"},body:JSON.stringify(body)
         });
@@ -562,6 +634,49 @@ async function triggerWorkflow(ticker){
             setTimeout(()=>{btn.textContent="REFRESHING...";location.reload()},wait*60*1000);
         }else throw new Error("Status "+resp.status);
     }catch(e){btn.textContent="ERROR";btn.classList.remove("running");btn.disabled=false;console.error("Trigger:",e)}
+}
+
+function showAddTickerModal(){
+    document.getElementById("add-ticker-modal").classList.add("on");
+    document.getElementById("add-err").textContent="";
+    document.getElementById("add-ticker-input").value="";
+    document.getElementById("add-name-input").value="";
+    selectedMarket="US";
+    document.querySelectorAll(".m-market-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelector('[data-market="US"]').classList.add("active");
+    document.getElementById("add-ticker-input").focus();
+}
+function closeAddTickerModal(){document.getElementById("add-ticker-modal").classList.remove("on")}
+
+function selectMarket(m,el){
+    selectedMarket=m;
+    document.querySelectorAll(".m-market-btn").forEach(b=>b.classList.remove("active"));
+    el.classList.add("active");
+}
+
+function confirmAddTicker(){
+    const ticker=document.getElementById("add-ticker-input").value.trim().toUpperCase();
+    const name=document.getElementById("add-name-input").value.trim();
+    const errEl=document.getElementById("add-err");
+    errEl.textContent="";
+
+    if(!ticker||ticker.length===0){errEl.textContent="הזן סמל טיקר";return}
+    if(!name||name.length===0){errEl.textContent="הזן שם חברה";return}
+
+    const custom=getCustomTickers();
+    if(custom.some(c=>c.symbol===ticker)||WATCHLIST.slice(0,15).includes(ticker)){
+        errEl.textContent="טיקר זה כבר במעקב";
+        return;
+    }
+
+    custom.push({symbol:ticker,name:name,market:selectedMarket});
+    localStorage.setItem("custom_tickers",JSON.stringify(custom));
+
+    if(!WATCHLIST.includes(ticker))WATCHLIST.push(ticker);
+
+    buildTickerPicks();
+    closeAddTickerModal();
+    render();
 }
 </script>
 </body>
