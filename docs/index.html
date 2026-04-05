@@ -768,9 +768,8 @@ function filterAC(q){
     if(!q||q.length<1){list.classList.remove("on");return}
     const upper=q.toUpperCase();
     const lower=q.toLowerCase();
-    // Filter by selected market + query match on symbol or name
+    // Search ALL markets — auto-select market on pick
     let matches=TICKER_DB.filter(t=>{
-        if(selectedMarket&&t.m!==selectedMarket)return false;
         return t.s.toUpperCase().includes(upper)||t.n.includes(q)||t.n.toLowerCase().includes(lower);
     });
     // Sort: exact symbol prefix first, then by symbol length
@@ -786,7 +785,8 @@ function filterAC(q){
     matches.forEach((t,i)=>{
         const d=document.createElement("div");
         d.className="ac-item";
-        d.innerHTML=`<span class="ac-sym">${t.s}</span><span class="ac-name">${t.n}</span>`;
+        const flag=t.m==="IL"?"🇮🇱 ":"🇺🇸 ";
+        d.innerHTML=`<span class="ac-sym">${t.s}</span><span class="ac-name">${flag}${t.n}</span>`;
         d.onclick=()=>selectAC(t);
         list.appendChild(d);
     });
