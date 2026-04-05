@@ -347,17 +347,19 @@ class CatalystEngine:
 
 
 # ==============================================================
-# JSON EXTRACTION
+# JSON EXTRACTION (robust — handles various Gemini output quirks)
 # ==============================================================
 def extract_json(text: str) -> Optional[Dict]:
+    """Extract JSON from Gemini response. Handles:
+    - Clean JSON
+    - Markdown code fences
+    - Partial responses (array without wrapper)
+    - Single objects without array
+    """
     if not text or not text.strip():
         return None
 
-    try:
-        return json.loads(text.strip())
-    except (json.JSONDecodeError, ValueError):
-        pass
-
+    # Step 1: Strip markdown fences
     cleaned = text.strip()
     for fence in ["```json", "```JSON", "```"]:
         if fence in cleaned:
@@ -367,20 +369,99 @@ def extract_json(text: str) -> Optional[Dict]:
                 break
     if "```" in cleaned:
         cleaned = cleaned.split("```")[0]
+    cleaned = cleaned.strip()
+
+    # Step 2: Try direct parse
     try:
-        return json.loads(cleaned.strip())
+        result = json.loads(cleaned)
+        return _normalize_stocks_result(result)
     except (json.JSONDecodeError, ValueError):
         pass
 
-    start = text.find("{")
-    if start == -1:
-        return None
+    # Step 3: Try wrapping in {"stocks": [...]} if it looks like an array
+    if cleaned.startswith("["):
+        try:
+            arr = json.loads(cleaned)
+            return {"stocks": arr}
+        except (json.JSONDecodeError, ValueError):
+            pass
 
+    # Step 4: Try wrapping bare object in array — {"ticker":...} → {"stocks": [{...}]}
+    if cleaned.startswith("{") and '"ticker"' in cleaned[:100]:
+        try:
+            # Might be a single stock object
+            obj = json.loads(cleaned)
+            if "ticker" in obj:
+                return {"stocks": [obj]}
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Step 5: Find the outermost JSON structure (object or array)
+    # Find first { or [
+    obj_start = cleaned.find("{")
+    arr_start = cleaned.find("[")
+
+    # Try array first if it appears before object (likely stocks array)
+    if arr_start != -1 and (obj_start == -1 or arr_start < obj_start):
+        arr_end = _find_matching_bracket(cleaned, arr_start, "[", "]")
+        if arr_end > arr_start:
+            try:
+                arr = json.loads(cleaned[arr_start:arr_end + 1])
+                if isinstance(arr, list):
+                    return {"stocks": arr}
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+    # Try object
+    if obj_start != -1:
+        obj_end = _find_matching_bracket(cleaned, obj_start, "{", "}")
+        if obj_end > obj_start:
+            try:
+                result = json.loads(cleaned[obj_start:obj_end + 1])
+                return _normalize_stocks_result(result)
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+    # Step 6: Last resort — find ALL top-level JSON objects and collect them
+    objects = _extract_all_objects(cleaned)
+    if objects:
+        stocks = []
+        for obj_str in objects:
+            try:
+                obj = json.loads(obj_str)
+                if isinstance(obj, dict) and "ticker" in obj:
+                    stocks.append(obj)
+                elif isinstance(obj, dict) and "stocks" in obj:
+                    return obj
+            except (json.JSONDecodeError, ValueError):
+                continue
+        if stocks:
+            return {"stocks": stocks}
+
+    log.error(f"JSON extraction failed. Preview: {cleaned[:300]}")
+    return None
+
+
+def _normalize_stocks_result(result) -> Optional[Dict]:
+    """Ensure result has the expected {"stocks": [...]} structure."""
+    if isinstance(result, dict):
+        if "stocks" in result:
+            return result
+        if "ticker" in result:
+            return {"stocks": [result]}
+        # Maybe top_picks from old format?
+        if "top_picks" in result:
+            return {"stocks": result["top_picks"]}
+    if isinstance(result, list):
+        return {"stocks": result}
+    return result
+
+
+def _find_matching_bracket(text: str, start: int, open_ch: str, close_ch: str) -> int:
+    """Find the matching closing bracket."""
     depth = 0
     in_string = False
     escape_next = False
-    end = -1
-
     for i in range(start, len(text)):
         c = text[i]
         if escape_next:
@@ -394,29 +475,28 @@ def extract_json(text: str) -> Optional[Dict]:
             continue
         if in_string:
             continue
-        if c == "{":
+        if c == open_ch:
             depth += 1
-        elif c == "}":
+        elif c == close_ch:
             depth -= 1
             if depth == 0:
-                end = i
-                break
+                return i
+    return -1
 
-    if end > start:
-        try:
-            return json.loads(text[start:end + 1])
-        except (json.JSONDecodeError, ValueError):
-            pass
 
-    last_brace = text.rfind("}")
-    if last_brace > start:
-        try:
-            return json.loads(text[start:last_brace + 1])
-        except (json.JSONDecodeError, ValueError):
-            pass
-
-    log.error(f"JSON extraction failed. Preview: {text[:200]}")
-    return None
+def _extract_all_objects(text: str) -> List[str]:
+    """Extract all top-level {...} objects from text."""
+    objects = []
+    i = 0
+    while i < len(text):
+        if text[i] == "{":
+            end = _find_matching_bracket(text, i, "{", "}")
+            if end > i:
+                objects.append(text[i:end + 1])
+                i = end + 1
+                continue
+        i += 1
+    return objects
 
 
 # ==============================================================
