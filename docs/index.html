@@ -154,6 +154,17 @@
         .buzz-alert-content{flex:1}
         .buzz-alert-t{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
         .buzz-alert-b{font-size:12.5px;color:var(--txt);line-height:1.6}
+        .d-sources{margin-bottom:12px;padding:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+        .d-sources-t{font-size:11px;font-weight:700;margin-bottom:8px;color:var(--accent);letter-spacing:1px;text-transform:uppercase}
+        .d-sources-list{list-style:none;padding:0;margin:0}
+        .d-sources-list li{font-size:11.5px;color:var(--txt2);line-height:1.7;padding:4px 0;border-bottom:1px solid rgba(35,37,56,.5)}
+        .d-sources-list li:last-child{border-bottom:none}
+        .d-sources-list a{color:var(--accent);text-decoration:none}
+        .d-sources-list a:hover{text-decoration:underline}
+        .d-rescan{width:100%;padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--accent),#6366f1);border:none;color:#fff;letter-spacing:1px;margin-bottom:12px;transition:.2s}
+        .d-rescan:hover{opacity:.85}
+        .d-rescan:disabled{opacity:.5;cursor:not-allowed}
+        .d-rescan.running{background:var(--amber);animation:pulse 1.5s ease infinite}
         .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:20px}
         .modal.on{display:flex}
         .modal-box{background:var(--bg2);border:1px solid rgba(0,212,255,.2);border-radius:14px;padding:28px 24px;width:360px;max-width:100%;text-align:center;max-height:90vh;overflow-y:auto}
@@ -256,7 +267,7 @@
 </div>
 <div id="run-modal" class="modal">
     <div class="modal-box">
-        <h3>הרצת סריקה</h3>
+        <h3>סריקה כללית — כל הטיקרים</h3>
         <div class="m-section">
             <div class="m-section-title">סוג ניתוח</div>
             <div class="m-analysis-opts">
@@ -269,10 +280,6 @@
                     <div class="m-analysis-desc">מבנה עסקי, תחרות, חדשנות, יציבות פיננסית</div>
                 </button>
             </div>
-        </div>
-        <p>בחר טיקר ספציפי או סרוק הכל:</p>
-        <div class="m-picks" id="m-picks">
-            <button class="m-pick active" data-val="" onclick="pickTicker(this)">הכל</button>
         </div>
         <p style="font-size:10px;color:var(--txt3);margin-bottom:10px" id="m-time">הזן קוד לאישור:</p>
         <div class="m-pin" id="m-pin">
@@ -372,20 +379,7 @@ function loadCustomTickers(){
 }
 
 function buildTickerPicks(){
-    const c=document.getElementById("m-picks");
-    const custom=getCustomTickers();
-    WATCHLIST.forEach(t=>{
-        if(!WATCHLIST.slice(0,15).includes(t)||!custom.some(ct=>ct.symbol===t)){
-            const b=document.createElement("button");
-            b.className="m-pick";
-            const isCust=custom.some(ct=>ct.symbol===t);
-            if(isCust)b.classList.add("custom");
-            b.dataset.val=t;
-            b.textContent=t;
-            b.onclick=()=>pickTicker(b);
-            c.appendChild(b);
-        }
-    });
+    // Legacy — no longer needed for global SCAN modal
 }
 
 function getCustomTickers(){
@@ -513,6 +507,12 @@ function openDrawer(s){
 
     if(s.bottom_line)h+=`<div class="d-bl">${s.bottom_line}</div>`;
 
+    // Per-ticker rescan buttons
+    h+=`<div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="d-rescan" id="rescan-short-${s.ticker}" onclick="rescanTicker('${s.ticker}','short',this)">⏱ סריקה מחודשת — טווח קצר</button>
+        <button class="d-rescan" id="rescan-long-${s.ticker}" onclick="rescanTicker('${s.ticker}','long',this)">📅 סריקה מחודשת — טווח ארוך</button>
+    </div>`;
+
     if(s.buzz_alert){
         h+=`<div class="buzz-alert">
             <div class="buzz-alert-icon">⚠️</div>
@@ -553,6 +553,21 @@ function openDrawer(s){
         h+=`</div>`;
     }
 
+    // Sources
+    const sources=s.sources||[];
+    if(sources.length){
+        h+=`<div class="d-sources"><div class="d-sources-t">תימוכין ומקורות</div><ul class="d-sources-list">`;
+        sources.forEach(src=>{
+            if(src.startsWith("http")){
+                const display=src.length>60?src.substring(0,57)+"...":src;
+                h+=`<li><a href="${src}" target="_blank" rel="noopener">${display}</a></li>`;
+            }else{
+                h+=`<li>${src}</li>`;
+            }
+        });
+        h+=`</ul></div>`;
+    }
+
     if(isCustom){
         h+=`<div class="d-sec" style="border-color:rgba(139,124,246,.3)">
             <button class="m-remove" onclick="removeCustomTicker('${s.ticker}')" style="width:100%;padding:10px;border-radius:8px;font-size:12px">הסר ממעקב</button>
@@ -583,11 +598,6 @@ function closeDrawer(){
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();closeRunModal();closeAddTickerModal()}});
 
 let selectedTicker="";
-function pickTicker(el){
-    document.querySelectorAll(".m-pick").forEach(b=>b.classList.remove("active"));
-    el.classList.add("active");
-    selectedTicker=el.dataset.val;
-}
 
 function selectAnalysisType(t,el){
     selectedAnalysisType=t;
@@ -600,7 +610,6 @@ function showRunModal(){
     document.getElementById("m-err").textContent="";
     selectedTicker="";
     selectedAnalysisType="short";
-    document.querySelectorAll(".m-pick").forEach(b=>b.classList.toggle("active",!b.dataset.val));
     document.querySelectorAll(".m-analysis-opt").forEach(b=>b.classList.toggle("active",b.dataset.type==="short"));
     [...document.querySelectorAll("#m-pin input")].forEach(i=>i.value="");
     initPins("m-pin");
@@ -616,6 +625,12 @@ async function confirmRun(){
     closeRunModal();triggerWorkflow(selectedTicker,selectedAnalysisType);
 }
 
+async function rescanTicker(ticker,analysisType,btn){
+    if(!confirm(`לסרוק מחדש את ${ticker} (${analysisType==="short"?"טווח קצר":"טווח ארוך"})?`))return;
+    btn.disabled=true;btn.classList.add("running");btn.textContent="סורק...";
+    try{await triggerWorkflow(ticker,analysisType);btn.textContent="הסריקה רצה! ~2 דקות";setTimeout(()=>{location.reload()},120000)}catch(e){btn.textContent="שגיאה";btn.disabled=false;btn.classList.remove("running")}
+}
+
 async function triggerWorkflow(ticker,analysisType){
     const btn=document.getElementById("run-btn");
     btn.textContent="SCANNING...";btn.classList.add("running");btn.disabled=true;
@@ -624,7 +639,7 @@ async function triggerWorkflow(ticker,analysisType){
         const _d=atob(_e).split("").reverse().join("");
         const body={ref:"main",inputs:{analysis_type:analysisType||"short"}};
         if(ticker)body.inputs.ticker=ticker;
-        const resp=await fetch("https://api.github.com/repos/itzhak-iab/Q5-Matrix/actions/workflows/daily_matrix.yml/dispatches",{
+        const resp=await fetch("https://api.github.com/repos/itzhak-iab/CATALYST/actions/workflows/daily_matrix.yml/dispatches",{
             method:"POST",headers:{"Authorization":"token "+_d,"Accept":"application/vnd.github+json"},body:JSON.stringify(body)
         });
         if(resp.status===204||resp.ok){
