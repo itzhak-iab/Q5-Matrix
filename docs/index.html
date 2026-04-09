@@ -651,17 +651,16 @@ function renderChart(ticker){
     ranges.forEach(r=>{tabs+=`<button class="tp-chart-tab${currentChartRange===r.k?" active":""}" onclick="changeChartRange('${r.k}','${ticker}')">${r.l}</button>`});
     const intervalMap={"1D":"1","5D":"15","1M":"D","YTD":"D","1Y":"W","2Y":"W","5Y":"M","10Y":"M"};
     const rangeMap={"1D":"1D","5D":"5D","1M":"1M","YTD":"YTD","1Y":"12M","2Y":"24M","5Y":"60M","10Y":"120M"};
-    const widgetConfig=JSON.stringify({symbol:ticker,width:"100%",height:420,interval:intervalMap[currentChartRange],range:rangeMap[currentChartRange],timezone:"America/New_York",theme:"dark",style:"2",locale:"he_IL",toolbar_bg:"#0f1117",enable_publishing:false,hide_top_toolbar:false,hide_legend:false,save_image:false,backgroundColor:"rgba(15,17,23,1)",gridColor:"rgba(35,37,56,0.5)",hide_volume:false,container_id:"tv_chart_container_"+ticker});
-    return `<div class="tp-chart"><div class="tp-chart-header"><span class="tp-chart-title">גרף מחיר</span><div class="tp-chart-tabs">${tabs}</div></div><div id="tv_chart_container_${ticker}" style="height:420px"><div class="tradingview-widget-container"><div id="tradingview_${ticker}"></div><script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script><script type="text/javascript">new TradingView.widget(${widgetConfig});</script></div></div></div>`;
+    const intervalTV=intervalMap[currentChartRange];const rangeTV=rangeMap[currentChartRange];
+    const src=`https://s.tradingview.com/widgetembed/?frameElementId=tv_${ticker}&symbol=${encodeURIComponent(ticker)}&interval=${intervalTV}&range=${rangeTV}&theme=dark&style=2&locale=he_IL&toolbar_bg=%230f1117&enable_publishing=0&hide_top_toolbar=0&hide_legend=0&save_image=0&backgroundColor=rgba(15%2C17%2C23%2C1)&gridColor=rgba(35%2C37%2C56%2C0.5)&hide_volume=0&withdateranges=1`;
+    return `<div class="tp-chart"><div class="tp-chart-header"><span class="tp-chart-title">גרף מחיר</span><div class="tp-chart-tabs">${tabs}</div></div><iframe class="tp-chart-frame" src="${src}" allowtransparency="true"></iframe></div>`;
 }
 function changeChartRange(range,ticker){currentChartRange=range;renderTickerBody(ticker)}
 
 // ── Analyst Ratings & Price Target ──
 function renderAnalystRatings(ticker){
-    const containerId="analyst_"+ticker+"_"+Date.now();
-    // TradingView Technical Analysis widget (clean embed)
-    const widgetHtml=`<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js">{"interval":"1W","width":"100%","isTransparent":true,"height":"300","symbol":"${ticker}","showIntervalTabs":true,"displayMode":"multiple","locale":"he_IL","colorTheme":"dark"}</script></div>`;
-    return `<div class="tp-ratings"><div class="tp-ratings-t">ניתוח טכני — המלצות</div><div id="${containerId}" style="min-height:300px">${widgetHtml}</div></div>`;
+    const src=`https://www.tradingview.com/embed-widget/technical-analysis/?locale=he_IL&symbol=${encodeURIComponent(ticker)}&interval=1W&width=100%25&isTransparent=true&height=300&colorTheme=dark&showIntervalTabs=true&displayMode=multiple`;
+    return `<div class="tp-ratings"><div class="tp-ratings-t">ניתוח טכני — המלצות</div><iframe src="${src}" style="width:100%;height:300px;border:none" allowtransparency="true"></iframe></div>`;
 }
 
 function renderPriceTarget(ticker){
