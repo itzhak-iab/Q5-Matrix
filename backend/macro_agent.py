@@ -131,11 +131,12 @@ class BatchResult(BaseModel):
 class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL = "gemini-2.5-flash"
+    GEMINI_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
     OUTPUT_FILE = Path(__file__).parent.parent / "docs" / "master_data.json"
     HISTORY_DIR = Path(__file__).parent.parent / "docs" / "history"
     CONFIG_FILE = Path(__file__).parent.parent / "docs" / "config.json"
     MAX_RETRIES = 5
-    RETRY_DELAY = 5
+    RETRY_DELAY = 8
     RATE_LIMIT_DELAY = 65
     BATCH_SIZE = 5  # tickers per Gemini call
 
@@ -198,6 +199,9 @@ class DataFetcher:
                     "52w_high": info.get("fiftyTwoWeekHigh", 0),
                     "52w_low": info.get("fiftyTwoWeekLow", 0),
                     "target_price": info.get("targetMeanPrice", 0),
+                    "target_low_price": info.get("targetLowPrice", 0),
+                    "target_high_price": info.get("targetHighPrice", 0),
+                    "num_analyst_opinions": info.get("numberOfAnalystOpinions", 0),
                     "revenue": info.get("totalRevenue", None),
                     "profit_margin": info.get("profitMargins", None),
                     "free_cash_flow": info.get("freeCashflow", None),
@@ -258,37 +262,48 @@ class CatalystEngine:
             self.client = None
 
     def call_gemini(self, prompt: str, temperature: float = 0.7) -> str:
-        for attempt in range(1, Config.MAX_RETRIES + 1):
-            try:
-                if GENAI_NEW_SDK:
-                    response = self.client.models.generate_content(
-                        model=Config.GEMINI_MODEL,
-                        contents=prompt,
-                        config=genai_types.GenerateContentConfig(
-                            temperature=temperature,
-                            max_output_tokens=16000,
-                        ),
-                    )
-                    return response.text or ""
-                else:
-                    model = genai_sdk.GenerativeModel(Config.GEMINI_MODEL)
-                    response = model.generate_content(
-                        prompt,
-                        generation_config={"temperature": temperature, "max_output_tokens": 16000},
-                    )
-                    return response.text or ""
-            except Exception as e:
-                err_str = str(e)
-                log.warning(f"Gemini attempt {attempt}/{Config.MAX_RETRIES}: {err_str[:200]}")
-                if attempt < Config.MAX_RETRIES:
-                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+        models_to_try = [Config.GEMINI_MODEL] + Config.GEMINI_FALLBACK_MODELS
+        for model_name in models_to_try:
+            for attempt in range(1, Config.MAX_RETRIES + 1):
+                try:
+                    if GENAI_NEW_SDK:
+                        response = self.client.models.generate_content(
+                            model=model_name,
+                            contents=prompt,
+                            config=genai_types.GenerateContentConfig(
+                                temperature=temperature,
+                                max_output_tokens=16000,
+                            ),
+                        )
+                        return response.text or ""
+                    else:
+                        model = genai_sdk.GenerativeModel(model_name)
+                        response = model.generate_content(
+                            prompt,
+                            generation_config={"temperature": temperature, "max_output_tokens": 16000},
+                        )
+                        return response.text or ""
+                except Exception as e:
+                    err_str = str(e)
+                    log.warning(f"Gemini [{model_name}] attempt {attempt}/{Config.MAX_RETRIES}: {err_str[:200]}")
+                    if "503" in err_str or "UNAVAILABLE" in err_str:
+                        if attempt >= 2:
+                            log.info(f"Model {model_name} unavailable after {attempt} tries, trying fallback...")
+                            break  # Try next model
+                        wait = Config.RETRY_DELAY * attempt
+                    elif "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
                         wait = Config.RATE_LIMIT_DELAY
                         log.info(f"Rate limited — waiting {wait}s...")
                     else:
                         wait = Config.RETRY_DELAY * attempt
-                    time.sleep(wait)
-                else:
-                    raise
+                    if attempt < Config.MAX_RETRIES:
+                        time.sleep(wait)
+                    elif model_name == models_to_try[-1]:
+                        raise
+            else:
+                continue  # inner loop completed without break — shouldn't reach here on success (returned)
+        # If we get here, all models failed
+        raise Exception("All Gemini models unavailable")
 
     def build_analysis_prompt(self, stocks_data: List[Dict], analysis_type: str = "short") -> str:
         data_str = json.dumps(stocks_data, ensure_ascii=False, default=str)
@@ -762,12 +777,11 @@ def main():
                     # Analyst price target
                     tp = vd.get("target_price", 0)
                     if tp:
-                        info = yf.Ticker(ticker).info or {}
                         validated["price_target"] = {
                             "mean": tp,
-                            "low": info.get("targetLowPrice", 0) or 0,
-                            "high": info.get("targetHighPrice", 0) or 0,
-                            "num_analysts": info.get("numberOfAnalystOpinions", 0) or 0,
+                            "low": vd.get("target_low_price", 0) or 0,
+                            "high": vd.get("target_high_price", 0) or 0,
+                            "num_analysts": vd.get("num_analyst_opinions", 0) or 0,
                         }
                     # Analyst ratings
                     ar = vd.get("analyst_ratings", {})
@@ -801,12 +815,11 @@ def main():
                         validated["change_pct"] = vd_mt.get("change_pct", 0)
                         tp_mt = vd_mt.get("target_price", 0)
                         if tp_mt:
-                            info_mt = yf.Ticker(mt).info or {}
                             validated["price_target"] = {
                                 "mean": tp_mt,
-                                "low": info_mt.get("targetLowPrice", 0) or 0,
-                                "high": info_mt.get("targetHighPrice", 0) or 0,
-                                "num_analysts": info_mt.get("numberOfAnalystOpinions", 0) or 0,
+                                "low": vd_mt.get("target_low_price", 0) or 0,
+                                "high": vd_mt.get("target_high_price", 0) or 0,
+                                "num_analysts": vd_mt.get("num_analyst_opinions", 0) or 0,
                             }
                         ar_mt = vd_mt.get("analyst_ratings", {})
                         if ar_mt:
