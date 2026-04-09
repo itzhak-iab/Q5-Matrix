@@ -292,6 +292,13 @@ class CatalystEngine:
                             break  # Try next model
                         wait = Config.RETRY_DELAY * attempt
                     elif "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        # If quota limit is 0 (fully exhausted), skip to next model immediately
+                        if "limit: 0" in err_str:
+                            log.info(f"Model {model_name} quota fully exhausted (limit: 0), trying fallback...")
+                            break  # Try next model
+                        if attempt >= 2:
+                            log.info(f"Model {model_name} rate limited after {attempt} tries, trying fallback...")
+                            break  # Try next model
                         wait = Config.RATE_LIMIT_DELAY
                         log.info(f"Rate limited — waiting {wait}s...")
                     else:
@@ -762,7 +769,11 @@ def main():
         log.info(f"  ── Batch {i // batch_size + 1}: {', '.join(batch_tickers)} ──")
 
         prompt = engine.build_analysis_prompt(batch_data, analysis_type=args.analysis_type)
-        response = engine.call_gemini(prompt, temperature=0.6)
+        try:
+            response = engine.call_gemini(prompt, temperature=0.6)
+        except Exception as e:
+            log.error(f"  ✗ Batch AI call failed (all models exhausted): {e}")
+            response = ""
         result = extract_json(response)
 
         batch_results = {}
